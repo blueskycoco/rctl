@@ -1,8 +1,7 @@
 #include <msp430g2553.h>
 #include <stdint.h>
-#define MAIN_MEMORY_START_ADDRESS  0xC000
-#define MAIN_MEMORY_END_ADDRESS  0xFBFF
-
+#include "cc1101.h"
+#include "dbg.h"
 // Vector table handlers
 typedef void vector_handler(void);
 vector_handler *APP = (vector_handler *)0xC000;
@@ -45,83 +44,6 @@ void TIMER1_A1_ISR(void) { TIMER1_A1_VECTOR_HANDLER(); }
 void TIMER1_A0_ISR(void) { TIMER1_A0_VECTOR_HANDLER(); }
 void NMI_ISR(void) { NMI_VECTOR_HANDLER(); }
 
-// variables
-uint8_t bootloader_mode = 0;
-uint8_t programmable = 0;
-uint8_t data[25];
-uint8_t data_index = 0;
-
-// flash memory controller function
-void write_byte_to_memory(uint16_t address, uint8_t val) {
-    uint8_t *ptr;
-    ptr = (uint8_t *) address;
-    FCTL1 = FWKEY + WRT;
-    FCTL3 = FWKEY;
-    *ptr = val;
-    FCTL1 = FWKEY;
-    FCTL3 = FWKEY + LOCK;
-}
-
-void erase_individual_segment(uint16_t segment_base_address) {
-    uint8_t *ptr;
-    ptr = (uint8_t *) segment_base_address;
-    FCTL3 = FWKEY;
-    FCTL1 = FWKEY + ERASE;
-    *ptr = 0xFF;
-    FCTL1 = FWKEY;
-    FCTL3 = FWKEY + LOCK;
-}
-
-void erase_segments(uint16_t segment_start_address, uint16_t segment_end_address) {
-    uint16_t segment_address = segment_start_address;
-    while (segment_address < segment_end_address) {
-        erase_individual_segment(segment_start_address);
-        segment_address += 0x200;
-    }
-}
-
-// uart functions
-void uart_write_char(char c) {
-    while (!(IFG2 & UCA0TXIFG));
-    UCA0TXBUF = c;
-}
-
-void uart_write_string(char *buf) {
-    while (*buf) uart_write_char(*buf++);
-}
-
-void USCI0RX_ISR(void) {
-    uint8_t rx_char, i;
-    uint16_t programming_address;
-    if (IFG2 & UCA0RXIFG) {
-        rx_char = UCA0RXBUF;
-        if (bootloader_mode == 1) {
-            if (programmable == 1) {
-                data[data_index] = rx_char;
-                data_index++;
-                if ((data_index == (data[3] + 4)) && (data_index > 4)) {
-                    if (data[0] == '+') { // '+' program data into chip
-                        if ((data_index <= 4) && (data_index < (data[3] + 4))) {
-                            uart_write_char('!'); // return error if formate not right
-                        } else {
-                            programming_address = (data[1] << 8) | (data[2]);
-                            for(i = 0; i < data[3]; i++) {
-                                if (data[4 + i] != 0xFF) write_byte_to_memory(programming_address + i, data[4 + i]);
-                            }
-                            uart_write_char('>');  // return the code programmed
-                        }
-                    } else if (data[0] == '-') { // '-' some error happened, remove all the code
-                        erase_segments(MAIN_MEMORY_START_ADDRESS, MAIN_MEMORY_END_ADDRESS);
-                        uart_write_char('!');
-                    }
-                    data_index = 0;
-                }
-            }
-        } else {
-            if (rx_char == 'b') bootloader_mode = 1;
-        }
-    }
-}
 int main(void) {
 	WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
 
@@ -141,36 +63,12 @@ int main(void) {
 	P2OUT = 0x00;									// Set P2  outputs to logic 0
 	P3OUT = 0x00;									// Set P3  outputs to logic 0
 
-	// init uart
-	P1SEL |= BIT1 | BIT2;
-    P1SEL2 |= BIT1 | BIT2;
-    UCA0CTL1 |= UCSSEL_2; // Use SMCLK = 16MHz
-	UCA0BR1 = 0;
-	UCA0BR0 = 138;
-	UCA0MCTL = UCBRS_7 | UCBRF_0;
-	UCA0CTL1 &= ~UCSWRST; // Initialize USCI state machine
-    IE2 |= UCA0RXIE; // enable RX interrupt
-	uart_write_string((char *)"System <> Booting ...\r\n");
-    USCIAB0RX_VECTOR_HANDLER = USCI0RX_ISR;
-    __bis_SR_register(GIE);
-    __delay_cycles(16000000);					// Sleep 3 seconds and try to enter to bootloader
-
-    if (bootloader_mode == 1) {
-        // bootloader mode
-        uart_write_string((char *)"Run Bootloader\r\n");
-        uart_write_string((char *)"Erasing...\r\n");
-        erase_segments(MAIN_MEMORY_START_ADDRESS, MAIN_MEMORY_END_ADDRESS);
-        uart_write_string((char *)"Programming...\r\n");
-        programmable = 1;
-        data_index = 0;
-    } else {
-        // app mode
-        uart_write_string((char *)"Start APP ...\r\n");
-        __delay_cycles(16000);
-        uart_write_string((char *)"Enter APP ...\r\n");
-    	APP(); // Run the app main()
-    }
-
+	uart_init();
+	radio_init();
+	while (1) {
+		//uart_write_string((char *)"1 count ...\r\n");
+		__delay_cycles(16000000);
+	}
 	__bis_SR_register(GIE + LPM4_bits);
 	return 0;
 }

@@ -2,7 +2,7 @@ APPNAME=rctl
 MCU=msp430g2553
 
 OBJECTS :=
-OBJECTS += main.o
+OBJECTS += main.o spi.o dbg.o cc1101.o
 
 SUPPORT_PATH=c:/ti/msp430_gcc
 
