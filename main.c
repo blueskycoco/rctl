@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "cc1101.h"
 #include "dbg.h"
+#if 0
 // Vector table handlers
 typedef void vector_handler(void);
 vector_handler *APP = (vector_handler *)0xC000;
@@ -43,7 +44,7 @@ void COMPARATORA_ISR(void) { COMPARATORA_VECTOR_HANDLER(); }
 void TIMER1_A1_ISR(void) { TIMER1_A1_VECTOR_HANDLER(); }
 void TIMER1_A0_ISR(void) { TIMER1_A0_VECTOR_HANDLER(); }
 void NMI_ISR(void) { NMI_VECTOR_HANDLER(); }
-
+#endif
 int main(void) {
 	unsigned char txBuffer[TX_BUF_SIZE];
 	unsigned short rx_length;
@@ -53,28 +54,19 @@ int main(void) {
 	BCSCTL1 = CALBC1_16MHZ; 		// Set oscillator to 16MHz
 	DCOCTL = CALDCO_16MHZ;  		// Set oscillator to 16MHz
 
-    // init flash memory control
-    FCTL2 = FWKEY + FSSEL_2 + 0x30;
-
-    // configure pins
-    P1DIR = 0xFF;									// Set P1 to output direction
-	P2DIR = 0xFF;									// Set P2 to output direction
-	P3DIR = 0xFF;									// Set P3 to output direction
-
-	P1OUT = 0x00;									// Set P1  outputs to logic 0
-	P2OUT = 0x00;									// Set P2  outputs to logic 0
-	P3OUT = 0x00;									// Set P3  outputs to logic 0
-
 	uart_init();
 	radio_init();
 	while (1) {
-		//uart_write_string((char *)"1 count ...\r\n");
-		if(radio_wait_for_idle(1024) < 1024)
+		int wait_time = radio_wait_for_idle(1024);
+		if( wait_time < 1024)
 		{
 			uart_write_string("have data in\r\n");
 			rx_length = TX_BUF_SIZE;
 			radio_read(txBuffer, &rx_length);     
-		}		
+		} else if (wait_time == 1024)
+			uart_write_string("no data in\r\n");
+		else
+			uart_write_string("no resaon\r\n");
 		__delay_cycles(16000000);
 	}
 	__bis_SR_register(GIE + LPM4_bits);
