@@ -11,6 +11,7 @@ void trxRfSpiInterfaceInit(uint8 prescalerValue)
 	UCB0BR1   =  0x00;
 
 	UCB0BR0 = prescalerValue;
+	P1SEL2 |= RF_MISO_PIN + RF_MOSI_PIN + RF_SCLK_PIN;
 	RF_PORT_SEL |= RF_MISO_PIN + RF_MOSI_PIN + RF_SCLK_PIN;
 	RF_PORT_DIR |= RF_MOSI_PIN + RF_SCLK_PIN;
 	RF_PORT_DIR &= ~RF_MISO_PIN;
