@@ -45,6 +45,8 @@ void TIMER1_A0_ISR(void) { TIMER1_A0_VECTOR_HANDLER(); }
 void NMI_ISR(void) { NMI_VECTOR_HANDLER(); }
 
 int main(void) {
+	unsigned char txBuffer[TX_BUF_SIZE];
+	unsigned short rx_length;
 	WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
 
 	// configure clocks;
@@ -67,6 +69,12 @@ int main(void) {
 	radio_init();
 	while (1) {
 		//uart_write_string((char *)"1 count ...\r\n");
+		if(radio_wait_for_idle(1024) < 1024)
+		{
+			uart_write_string("have data in\r\n");
+			rx_length = TX_BUF_SIZE;
+			radio_read(txBuffer, &rx_length);     
+		}		
 		__delay_cycles(16000000);
 	}
 	__bis_SR_register(GIE + LPM4_bits);
