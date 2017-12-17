@@ -1,4 +1,5 @@
 #include <msp430g2553.h>
+#include <stdio.h>
 #include <stdint.h>
 #include "cc1101.h"
 #include "dbg.h"
@@ -46,6 +47,7 @@ void TIMER1_A0_ISR(void) { TIMER1_A0_VECTOR_HANDLER(); }
 void NMI_ISR(void) { NMI_VECTOR_HANDLER(); }
 #endif
 int main(void) {
+	int i=0;
 	unsigned char txBuffer[TX_BUF_SIZE];
 	unsigned short rx_length;
 	WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
@@ -57,7 +59,9 @@ int main(void) {
 	uart_init();
 	radio_init();
 	while (1) {
-		int wait_time = radio_wait_for_idle(1024);
+		int wait_time = radio_wait_for_idle(0);
+		//printf("wait time %d, %d\r\n", wait_time,i);
+		i++;
 		if( wait_time < 1024)
 		{
 			uart_write_string("have data in\r\n");
