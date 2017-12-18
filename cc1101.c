@@ -202,6 +202,7 @@ int radio_init(void)
 	radio_set_freq(902750);
 	set_rf_packet_length(TX_BUF_SIZE);
 	radio_receive_on();
+	radio_idle();
 	return 0;
 }
 int radio_receive_on(void) {

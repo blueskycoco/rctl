@@ -1,6 +1,7 @@
 #include <msp430g2553.h>
 #include <stdio.h>
 #include <stdint.h>
+#include "cc1101_def.h"
 #include "cc1101.h"
 #include "dbg.h"
 #if 0
@@ -59,19 +60,32 @@ int main(void) {
 	uart_init();
 	radio_init();
 	while (1) {
-		int wait_time = radio_wait_for_idle(0);
+		#if 0
+		int wait_time = radio_wait_for_idle(1024);
 		//printf("wait time %d, %d\r\n", wait_time,i);
 		i++;
 		if( wait_time < 1024)
 		{
 			uart_write_string("have data in\r\n");
 			rx_length = TX_BUF_SIZE;
-			radio_read(txBuffer, &rx_length);     
+			radio_read(txBuffer, &rx_length);
+			if (rx_length >0)
+				uart_write_string("vaild data\r\n");
+			radio_send(txBuffer,rx_length);
+			radio_wait_for_idle(0);
+			trxSpiCmdStrobe(RF_SFRX);	
 		} else if (wait_time == 1024)
 			uart_write_string("no data in\r\n");
 		else
 			uart_write_string("no resaon\r\n");
-		__delay_cycles(16000000);
+		#endif
+		sprintf(txBuffer,"test data %djsldkjflksdjflksdjf\n", i++);
+		rx_length = 24;//strlen(txBuffer);		
+		radio_send(txBuffer,rx_length);
+		uart_write_string("sending data ..\r\n");
+		radio_wait_for_idle(0);
+		uart_write_string("sending data ...\r\n");
+		__delay_cycles(48000000);
 	}
 	__bis_SR_register(GIE + LPM4_bits);
 	return 0;
