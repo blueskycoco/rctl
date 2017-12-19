@@ -79,11 +79,15 @@ int main(void) {
 		else
 			uart_write_string("no resaon\r\n");
 		#endif
-		sprintf(txBuffer,"test data %djsldkjflksdjflksdjf\n", i++);
-		rx_length = 24;//strlen(txBuffer);		
+		//sprintf(txBuffer,"test data %djsldkjflksdjflksdjf\n", i++);
+		memset(txBuffer, 0x30+i, TX_BUF_SIZE);
+		i++;
+		if (i==10)
+			i=0;
+		rx_length = TX_BUF_SIZE;//strlen(txBuffer);		
 		radio_send(txBuffer,rx_length);
-		uart_write_string("sending data ..\r\n");
-		radio_wait_for_idle(0);
+		//uart_write_string("sending data ..\r\n");
+		//radio_wait_for_idle(0);
 		uart_write_string("sending data ...\r\n");
 		__delay_cycles(48000000);
 	}

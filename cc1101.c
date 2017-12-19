@@ -15,35 +15,31 @@ unsigned char rf_end_packet = 0;
 
 const registerSetting_t preferredSettings_1200bps[]=
 {
-	{IOCFG2,      0x06},
-	{IOCFG1,      0x2E},
-	{IOCFG0,      0x06},
-	{FIFOTHR,     0x47},
-	{SYNC1,       0xD3},
-	{SYNC0,       0x91},
-	{PKTLEN,      0x18},
-	{PKTCTRL1,    0x00},
-	{PKTCTRL0,    0x04},
-	{FSCTRL1,     0x06},
-	{FREQ2,       0x23},
-	{FREQ1,       0xB8},
-	{FREQ0,       0x9D},
-	{MDMCFG4,     0xF5},
-	{MDMCFG3,     0x83},
-	{MDMCFG2,     0x13},
-	{MDMCFG1,     0x22},
-	{MDMCFG0,     0xF7},
-	{DEVIATN,     0x14},
-	{MCSM0,       0x18},
-	{FOCCFG,      0x14},
-	{WORCTRL,     0xFB},
-	{FSCAL3,      0xE9},
-	{FSCAL2,      0x2A},
-	{FSCAL1,      0x00},
-	{FSCAL0,      0x1F},
-	{TEST2,       0x81},
-	{TEST1,       0x35},
-	{TEST0,       0x09},
+	{IOCFG0,0x06},		
+	{PKTCTRL1,0x04},
+	{PKTCTRL0,0x05},
+	{FSCTRL1,0x0C},
+	{FREQ2,0x21},
+	{FREQ1,0x62},
+	{FREQ0,0x76},
+	{MDMCFG4,0x2D},
+	{MDMCFG3,0x3B},
+	{MDMCFG2,0x13},
+	{DEVIATN,0x62},
+	{MCSM0,0x18},
+	{FOCCFG,0x1D},
+	{BSCFG,0x1C},
+	{AGCCTRL2,0xC7},
+	{AGCCTRL1,0x00},
+	{AGCCTRL0,0xB0},
+	{WORCTRL,0xFB},
+	{FREND1,0xB6},
+	{FSCAL3,0xEA},
+	{FSCAL2,0x2A},
+	{FSCAL1,0x00},
+	{FSCAL0,0x1F},
+	{TEST0,0x09},
+	{PATABLE,0xc0}			
 };
 void hal_timer_init(unsigned int master_count) {
 
@@ -188,8 +184,8 @@ int radio_init(void)
 		writeByte = preferredSettings[i].data;
 		trx8BitRegAccess(RADIO_WRITE_ACCESS, preferredSettings[i].addr, &writeByte, 1);
 	}
-	paTable[0] = 0xC5;	
-	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, PATABLE, paTable, 1);
+	//paTable[0] = 0xC5;	
+	//trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, PATABLE, paTable, 1);
 
 	for(i = 0; i < preferredSettings_length; i++) {
 		uint8 readByte = 0;
@@ -199,10 +195,10 @@ int radio_init(void)
 		else
 			uart_write_string("rf reg set failed\r\n");
 	}
-	radio_set_freq(902750);
-	set_rf_packet_length(TX_BUF_SIZE);
-	radio_receive_on();
-	radio_idle();
+	radio_set_freq(433000);
+	//set_rf_packet_length(TX_BUF_SIZE);
+	//radio_receive_on();
+	//radio_idle();
 	return 0;
 }
 int radio_receive_on(void) {
@@ -217,6 +213,13 @@ int radio_receive_on(void) {
 	return(0);
 }
 int radio_send(unsigned char *payload, unsigned short payload_len) {
+	//unsigned char reg_status = trxSpiCmdStrobe(RF_SFTX);    
+	//do  
+    //{  
+    // reg_status = trxSpiCmdStrobe(RF_SNOP);  
+    //} while((reg_status & 0x7f) != 0);
+    uint8 len = 24;
+	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, &len, 1);
 
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
 
@@ -224,8 +227,11 @@ int radio_send(unsigned char *payload, unsigned short payload_len) {
 #ifdef ENABLE_RANGE_EXTENDER
 	range_extender_txon();
 #endif
-
+	//trxSpiCmdStrobe(RF_SIDLE);
 	trxSpiCmdStrobe(RF_STX);               // Change state to TX, initiating
+	RF_GDO_PxIES |= RF_GDO_PIN;       // Int on falling edge (end of pkt)
+	RF_GDO_PxIFG &= ~RF_GDO_PIN;      // Clear flag
+	while((RF_GDO_PxIFG & RF_GDO_PIN));
 	return(0);
 }
 int radio_read(unsigned char *buf, unsigned short *buf_len) {
@@ -287,11 +293,17 @@ int radio_wait_for_idle(unsigned short max_hold) {
 			// wait for radio to interupt us to continue processing
 			status = 0;
 
-			while(!(RF_GDO_PxIFG & RF_GDO_PIN));
+			//while(!(RF_GDO_PxIFG & RF_GDO_PIN));
 			// indicate that end of packet has been found
 			rf_end_packet = 1;
 			// clear the interrupt flag
 			RF_GDO_PxIFG &= ~RF_GDO_PIN;
+			while((RF_GDO_PxIFG & RF_GDO_PIN));
+			//unsigned char status = trxSpiCmdStrobe(RF_SFTX); 
+			//do  
+    		//{  
+        	//	 trx8BitRegAccess(RADIO_READ_ACCESS+RADIO_BURST_ACCESS, TXBYTES, &reg_status, 1);
+    		//} while((reg_status & 0x7f) != 0);
 		}
 
 
@@ -322,9 +334,14 @@ int radio_set_freq(unsigned long freq) {
 	freq_byte[2] = ((uint8*)&freq_word)[0];
 	freq_byte[1] = ((uint8*)&freq_word)[1];
 	freq_byte[0] = ((uint8*)&freq_word)[2];
-
+	if (freq_byte[2] != 0x62 || freq_byte[1] != 0xa7 || freq_byte[0] != 0x10)
+		uart_write_string("set freq to 433 failed\r\n");
+	else
+		uart_write_string("set freq to 433 ok\r\n");
 	// upload the frequency word to the transciver using a 3 byte write
-	trx8BitRegAccess(RADIO_WRITE_ACCESS | RADIO_BURST_ACCESS , FREQ2, freq_byte, 3);
+	trx8BitRegAccess(RADIO_WRITE_ACCESS, FREQ2, &(freq_byte[2]), 1);
+	trx8BitRegAccess(RADIO_WRITE_ACCESS, FREQ1, &(freq_byte[1]), 1);
+	trx8BitRegAccess(RADIO_WRITE_ACCESS, FREQ0, &(freq_byte[0]), 1);
 
 	return 0;
 }
