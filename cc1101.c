@@ -15,31 +15,42 @@ unsigned char rf_end_packet = 0;
 
 const registerSetting_t preferredSettings_1200bps[]=
 {
-	{IOCFG0,0x06},		
+	{IOCFG0,0x06},
 	{PKTCTRL1,0x04},
 	{PKTCTRL0,0x05},
-	{FSCTRL1,0x0C},
-	{FREQ2,0x21},
-	{FREQ1,0x62},
-	{FREQ0,0x76},
-	{MDMCFG4,0x2D},
-	{MDMCFG3,0x3B},
+	{FSCTRL1,0x06},
+	{FSCTRL0,0x00},
+	{FREQ2,0x10},
+	{FREQ1,0xa7},
+	{FREQ0,0x62},
+	{MDMCFG4,0xf5},
+	{MDMCFG3,0x83},
 	{MDMCFG2,0x13},
-	{DEVIATN,0x62},
+	{MDMCFG1,0x22},
+	{MDMCFG0,0xf8},
+	{CHANNR,0x00},
+	{DEVIATN,0x15},
 	{MCSM0,0x18},
-	{FOCCFG,0x1D},
-	{BSCFG,0x1C},
-	{AGCCTRL2,0xC7},
-	{AGCCTRL1,0x00},
-	{AGCCTRL0,0xB0},
+	{FOCCFG,0x16},
+	{BSCFG,0x6C},
+	{AGCCTRL2,0x03},
+	{AGCCTRL1,0x40},
+	{AGCCTRL0,0x91},
 	{WORCTRL,0xFB},
-	{FREND1,0xB6},
-	{FSCAL3,0xEA},
+	{FREND1,0x56},
+	{FREND0,0x10},
+	{FSCAL3,0xE9},
 	{FSCAL2,0x2A},
 	{FSCAL1,0x00},
 	{FSCAL0,0x1F},
+	{TEST2,0x81},
+	{TEST1,0x35},
 	{TEST0,0x09},
-	{PATABLE,0xc0}			
+	{FSTEST,0x59},
+	{FIFOTHR,0x47},
+	{ADDR,0x00},
+	{PKTLEN,0x3d},
+	{PATABLE,0x60} 
 };
 void hal_timer_init(unsigned int master_count) {
 
@@ -195,7 +206,7 @@ int radio_init(void)
 		else
 			uart_write_string("rf reg set failed\r\n");
 	}
-	radio_set_freq(433000);
+	//radio_set_freq(433000);
 	//set_rf_packet_length(TX_BUF_SIZE);
 	//radio_receive_on();
 	//radio_idle();
@@ -213,13 +224,7 @@ int radio_receive_on(void) {
 	return(0);
 }
 int radio_send(unsigned char *payload, unsigned short payload_len) {
-	//unsigned char reg_status = trxSpiCmdStrobe(RF_SFTX);    
-	//do  
-    //{  
-    // reg_status = trxSpiCmdStrobe(RF_SNOP);  
-    //} while((reg_status & 0x7f) != 0);
-    uint8 len = 24;
-	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, &len, 1);
+	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_SINGLE_ACCESS, TXFIFO, &payload_len, 1);
 
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
 
@@ -228,8 +233,10 @@ int radio_send(unsigned char *payload, unsigned short payload_len) {
 	range_extender_txon();
 #endif
 	//trxSpiCmdStrobe(RF_SIDLE);
-	trxSpiCmdStrobe(RF_STX);               // Change state to TX, initiating
-	RF_GDO_PxIES |= RF_GDO_PIN;       // Int on falling edge (end of pkt)
+	trxSpiCmdStrobe(RF_STX);               // Change state to TX, initiating	
+	//RF_GDO_PxIFG &= ~RF_GDO_PIN;      // Clear flag
+	//while(!(RF_GDO_PxIFG & RF_GDO_PIN));
+	RF_GDO_PxIES |= RF_GDO_PIN;       // Int on falling edge (end of pkt)	
 	RF_GDO_PxIFG &= ~RF_GDO_PIN;      // Clear flag
 	while((RF_GDO_PxIFG & RF_GDO_PIN));
 	return(0);
