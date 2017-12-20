@@ -28,7 +28,7 @@
 #define RADIO_TX_PACKET_RDY     0x87
 #define RADIO_CHANNEL_NOT_CLR   0x88
 #define RADIO_CHANNEL_IS_CLR    0x89
-#define TX_BUF_SIZE 24
+#define TX_BUF_SIZE 128
 typedef struct
 {
     uint16  addr;

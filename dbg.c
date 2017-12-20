@@ -26,11 +26,7 @@ void uart_init(void)
     //__bis_SR_register(GIE);
     //__delay_cycles(16000000);					// Sleep 3 seconds and try to enter to bootloader
 }
-int putc(int c)
-{
-	uart_write_char(c);
-	return 1;
-}
+
 #if 0
 #define RT_PRINTF_PRECISION
 #define ZEROPAD     (1 << 0)    /* pad with zero */

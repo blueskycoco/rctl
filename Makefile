@@ -4,13 +4,13 @@ MCU=msp430g2553
 OBJECTS :=
 OBJECTS += main.o spi.o dbg.o cc1101.o
 
-SUPPORT_PATH=e:/ti/msp430_gcc
+SUPPORT_PATH=c:/ti/msp430_gcc
 
 CC=msp430-elf-gcc
 OBJCOPY=msp430-elf-objcopy
 SIZE=msp430-elf-size
 
-CFLAGS= -mmcu=${MCU} -g -Os -Wall -Wunused
+CFLAGS= -mmcu=${MCU} -g -O2 -Wall -Wunused
 INCLUDES = -I${SUPPORT_PATH}/include
 LDLIBS = -L${SUPPORT_PATH}/include
 
