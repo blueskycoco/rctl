@@ -15,7 +15,7 @@ unsigned char rf_end_packet = 0;
 
 const registerSetting_t preferredSettings_1200bps[]=
 {
-	{IOCFG0,0x06},
+	{IOCFG2,0x06},
 	{PKTCTRL1,0x04},
 	{PKTCTRL0,0x05},
 	{FSCTRL1,0x06},
@@ -234,9 +234,10 @@ int radio_send(unsigned char *payload, unsigned short payload_len) {
 #endif
 	//trxSpiCmdStrobe(RF_SIDLE);
 	trxSpiCmdStrobe(RF_STX);               // Change state to TX, initiating	
-	//RF_GDO_PxIFG &= ~RF_GDO_PIN;      // Clear flag
-	//while(!(RF_GDO_PxIFG & RF_GDO_PIN));
-	RF_GDO_PxIES |= RF_GDO_PIN;       // Int on falling edge (end of pkt)	
+	//RF_GDO_PxIES &= ~RF_GDO_PIN;
+	RF_GDO_PxIFG &= ~RF_GDO_PIN;      // Clear flag
+	while(!(RF_GDO_PxIFG & RF_GDO_PIN));
+	//RF_GDO_PxIES |= RF_GDO_PIN;       // Int on falling edge (end of pkt)	
 	RF_GDO_PxIFG &= ~RF_GDO_PIN;      // Clear flag
 	while((RF_GDO_PxIFG & RF_GDO_PIN));
 	return(0);
