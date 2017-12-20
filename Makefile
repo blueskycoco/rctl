@@ -4,7 +4,7 @@ MCU=msp430g2553
 OBJECTS :=
 OBJECTS += main.o spi.o dbg.o cc1101.o
 
-SUPPORT_PATH=e:/ti/msp430_gcc
+SUPPORT_PATH=c:/ti/msp430_gcc
 
 CC=msp430-elf-gcc
 OBJCOPY=msp430-elf-objcopy

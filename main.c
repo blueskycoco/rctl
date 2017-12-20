@@ -88,8 +88,8 @@ int main(void) {
 		radio_send(txBuffer,rx_length);
 		//uart_write_string("sending data ..\r\n");
 		//radio_wait_for_idle(0);
-		uart_write_string("sending data ...\r\n");
-		__delay_cycles(48000000);
+		//uart_write_string("sending data ...\r\n");
+		__delay_cycles(4000000);
 	}
 	__bis_SR_register(GIE + LPM4_bits);
 	return 0;
