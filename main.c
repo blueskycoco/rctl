@@ -16,21 +16,10 @@ int main(void) {
 	uart_init();
 	radio_init();
 	while (1) {
-		/*if (CRC_OK == radio_read(txBuffer, &rx_length))
-		{
-			radio_send(txBuffer,rx_length);		
-			uart_write_string("sending data ...\r\n");
-		}
-		else
-			uart_write_string("crc failed\r\n");*/
-		memset(txBuffer,0x30+i,TX_BUF_SIZE);
-		i++;
-		if (i==10)
-			i=0;
 		rx_length = TX_BUF_SIZE;
-		radio_send(txBuffer, rx_length);
-		uart_write_string("sending data ...\r\n");
-		__delay_cycles(48000000);
+		if (CRC_OK == radio_read(txBuffer,&rx_length)) {
+			radio_send(txBuffer,rx_length);
+			}
 	}
 	__bis_SR_register(GIE + LPM4_bits);
 	return 0;

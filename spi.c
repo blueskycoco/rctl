@@ -18,6 +18,8 @@ void trxRfSpiInterfaceInit(uint8 prescalerValue)
 	RF_CS_N_PORT_SEL &= ~RF_CS_N_PIN;
 	RF_CS_N_PORT_DIR |= RF_CS_N_PIN;
 	RF_CS_N_PORT_OUT |= RF_CS_N_PIN;
+	RF_GDO_SEL &= ~RF_GDO_PIN;
+	RF_GDO_DIR &= ~RF_GDO_PIN;
 
 	UCB0CTL1 &= ~UCSWRST;
 	return;

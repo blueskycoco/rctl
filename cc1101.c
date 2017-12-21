@@ -75,9 +75,6 @@ int radio_init(void)
 	}
 	#endif
 	//radio_set_freq(433000);
-	trxSpiCmdStrobe(RF_SIDLE);
-	trxSpiCmdStrobe(RF_SFRX);
-	trxSpiCmdStrobe(RF_SFTX);
 	return 0;
 }
 int radio_send(unsigned char *payload, unsigned short payload_len) {
@@ -86,29 +83,21 @@ int radio_send(unsigned char *payload, unsigned short payload_len) {
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
 
 	trxSpiCmdStrobe(RF_STX);               // Change state to TX, initiating	
-	//RF_GDO_PxIES &= ~RF_GDO_PIN;
-	//RF_GDO_PxIFG &= ~RF_GDO_PIN;      // Clear flag
-	//while(!(RF_GDO_PxIFG & RF_GDO_PIN));
-	RF_GDO_PxIES |= RF_GDO_PIN;       // Int on falling edge (end of pkt)	
-	RF_GDO_PxIFG &= ~RF_GDO_PIN;      // Clear flag
-	while((RF_GDO_PxIFG & RF_GDO_PIN));
+	
+	while(!(RF_GDO_IN & RF_GDO_PIN));	
+	while((RF_GDO_IN & RF_GDO_PIN));
 	return(0);
 }
 int radio_read(unsigned char *buf, unsigned short *buf_len) {
 	unsigned char status[2];
 	unsigned char pktLen;
 	trxSpiCmdStrobe(RF_SRX);
-	RF_GDO_PxIFG &= ~RF_GDO_PIN;      // Clear flag
-	while(!(RF_GDO_PxIFG & RF_GDO_PIN));
-	uart_write_string("sync word get\r\n");
-	//RF_GDO_PxIES |= RF_GDO_PIN;       // Int on falling edge (end of pkt)	
-	RF_GDO_PxIFG &= ~RF_GDO_PIN;      // Clear flag
-	while((RF_GDO_PxIFG & RF_GDO_PIN));
-	uart_write_string("packet get\r\n");
+	while(!(RF_GDO_IN & RF_GDO_PIN));	
+	while((RF_GDO_IN & RF_GDO_PIN));
 	/* Read number of bytes in RX FIFO */
 	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXBYTES, &pktLen, 1);
 	pktLen = pktLen  & NUM_RXBYTES;
-//		printf("pktLen is %d\r\n",pktLen);
+
 	/* make sure the packet size is appropriate, that is 1 -> buffer_size */
 	if ((pktLen > 0) && (pktLen <= *buf_len)) {
 		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXFIFO, &pktLen, 1);
