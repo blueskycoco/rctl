@@ -13,7 +13,7 @@ int main(void) {
 	BCSCTL1 = CALBC1_16MHZ; 		// Set oscillator to 16MHz
 	DCOCTL = CALDCO_16MHZ;  		// Set oscillator to 16MHz
 
-	uart_init();
+	//uart_init();
 	radio_init();
 	while (1) {
 		rx_length = TX_BUF_SIZE;

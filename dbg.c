@@ -8,7 +8,7 @@ void uart_write_char(char c) {
     UCA0TXBUF = c;
 }
 void uart_write_string(char *buf) {
-    while (*buf) uart_write_char(*buf++);
+    //while (*buf) uart_write_char(*buf++);
 }
 void uart_init(void)
 {

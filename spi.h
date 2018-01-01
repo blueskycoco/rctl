@@ -14,6 +14,14 @@
 #define     RF_CS_N_PORT_DIR       P2DIR
 #define     RF_CS_N_PORT_OUT       P2OUT
 #define     RF_CS_N_PIN            BIT2
+
+#define 	RF_POWER_N_PORT_SEL 	P2SEL
+#define     RF_POWER_N_PORT_DIR     P2DIR
+#define     RF_POWER_N_PORT_OUT     P2OUT
+#define     RF_POWER_N_PIN          BIT5
+#define     RF_LED_N_PIN          	BIT5
+
+
 /*use GDO2 as int */
 #define     RF_PORT_VECTOR         PORT2_VECTOR
 #define     RF_GDO_OUT             P2OUT
