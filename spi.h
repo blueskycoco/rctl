@@ -19,7 +19,11 @@
 #define     RF_POWER_N_PORT_DIR     P2DIR
 #define     RF_POWER_N_PORT_OUT     P2OUT
 #define     RF_POWER_N_PIN          BIT5
-#define     RF_LED_N_PIN          	BIT5
+
+#define     RF_LED_SEL            P1SEL
+#define     RF_LED_OUT            P1OUT
+#define     RF_LED_DIR            P1DIR
+#define     RF_LED_N_PIN           BIT4
 
 
 /*use GDO2 as int */
