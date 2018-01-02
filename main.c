@@ -18,7 +18,9 @@ int main(void) {
 	while (1) {
 		rx_length = TX_BUF_SIZE;
 		if (CRC_OK == radio_read(txBuffer,&rx_length)) {
+			P1OUT |= BIT4;
 			radio_send(txBuffer,rx_length);
+			P1OUT &= ~BIT4;
 			}
 	}
 	__bis_SR_register(GIE + LPM4_bits);
