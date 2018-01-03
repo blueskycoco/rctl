@@ -6,7 +6,7 @@
 #include "dbg.h"
 #define RF_XTAL 26000
 #define SCALING_FREQ     (float)((RF_XTAL)/65.536)
-
+#if 0
 const registerSetting_t preferredSettings_1200bps[]=
 {
 	{IOCFG2,0x06},
@@ -46,6 +46,58 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{PKTLEN,0x3d},
 	{PATABLE,0x60} 
 };
+#else
+const registerSetting_t preferredSettings_1200bps[]=
+{
+	{IOCFG2,0x06},
+	{IOCFG1,0x2e},
+	{IOCFG0,0x06},
+	{FIFOTHR,0x47},
+	{SYNC1,0xf3},
+	{SYNC0,0x9f},
+	{PKTLEN,0x3D},
+	{PKTCTRL1,0x0E},
+	{PKTCTRL0,0x45},
+	{ADDR,0x01},
+	{CHANNR,0x00},
+	{FSCTRL1,0x0C},
+	{FSCTRL0,0x00},
+	{FREQ2,0x10},
+	{FREQ1,0xA7},
+	{FREQ0,0x62},
+	{MDMCFG4,0x5B},
+	{MDMCFG3,0xF8},
+	{MDMCFG2,0x93},
+	{MDMCFG1,0x23},
+	{MDMCFG0,0xF8},
+	{DEVIATN,0x47},
+	{MCSM2,0x07},
+	{MCSM1,0x30},
+	{MCSM0,0x08},
+	{FOCCFG,0x1D},
+	{BSCFG,0x1C},
+	{AGCCTRL2,0xC7},
+	{AGCCTRL1,0x00},
+	{AGCCTRL0,0xB2},
+	{WOREVT1,0x87},
+	{WOREVT0,0x6B},
+	{WORCTRL,0xFB},
+	{FREND1,0xB6},
+	{FREND0,0x10},
+	{FSCAL3,0xEA},
+	{FSCAL2,0x2A},
+	{FSCAL1,0x00},
+	{FSCAL0,0x1F},
+	{RCCTRL1,0x41},
+	{RCCTRL0,0x00},
+	{FSTEST,0x59},
+	{PTEST,0x7F},
+	{AGCTEST,0x3F},
+	{TEST2,0x81},
+	{TEST1,0x35},
+	{TEST0,0x09}	
+};
+#endif
 int radio_init(void)
 {
 
