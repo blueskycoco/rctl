@@ -6,98 +6,28 @@
 #include "dbg.h"
 #define RF_XTAL 26000
 #define SCALING_FREQ     (float)((RF_XTAL)/65.536)
-#if 0
 const registerSetting_t preferredSettings_1200bps[]=
 {
-	{IOCFG2,0x06},
-	{PKTCTRL1,0x04},
-	{PKTCTRL0,0x05},
-	{FSCTRL1,0x06},
-	{FSCTRL0,0x00},
-	{FREQ2,0x10},
-	{FREQ1,0xa7},
-	{FREQ0,0x62},
-	{MDMCFG4,0xf5},
-	{MDMCFG3,0x83},
-	{MDMCFG2,0x13},
-	{MDMCFG1,0x22},
-	{MDMCFG0,0xf8},
-	{CHANNR,0x00},
-	{DEVIATN,0x15},
-	{MCSM0,0x18},
-	{FOCCFG,0x16},
-	{BSCFG,0x6C},
-	{AGCCTRL2,0x03},
-	{AGCCTRL1,0x40},
-	{AGCCTRL0,0x91},
-	{WORCTRL,0xFB},
-	{FREND1,0x56},
-	{FREND0,0x10},
-	{FSCAL3,0xE9},
-	{FSCAL2,0x2A},
-	{FSCAL1,0x00},
-	{FSCAL0,0x1F},
-	{TEST2,0x81},
-	{TEST1,0x35},
-	{TEST0,0x09},
-	{FSTEST,0x59},
-	{FIFOTHR,0x47},
-	{ADDR,0x00},
-	{PKTLEN,0x3d},
-	{PATABLE,0x60} 
+	{IOCFG2,	0x06},
+	{PKTCTRL0,	0x05},	
+	{FSCTRL1,	0x06},
+	{FREQ2,		0x10},
+	{FREQ1,		0xa7},
+	{FREQ0,		0x62},
+	{MDMCFG4,	0xf5},
+	{MDMCFG3,	0x83},
+	{MDMCFG2,	0x13},
+	{DEVIATN,	0x15}, 
+	{MCSM0,		0x18},
+	{FOCCFG,	0x16},
+	{WORCTRL,	0xFB},
+	{FSCAL3,	0xE9},
+	{FSCAL2,	0x2A},
+	{FSCAL1,	0x00},
+	{FSCAL0,	0x1F},
+	{TEST0,		0x09},
+	{PATABLE,	0x60} 
 };
-#else
-const registerSetting_t preferredSettings_1200bps[]=
-{
-	{IOCFG2,0x06},
-	{IOCFG1,0x2e},
-	{IOCFG0,0x06},
-	{FIFOTHR,0x47},
-	{SYNC1,0xf3},
-	{SYNC0,0x9f},
-	{PKTLEN,0x3D},
-	{PKTCTRL1,0x0E},
-	{PKTCTRL0,0x45},
-	{ADDR,0x01},
-	{CHANNR,0x00},
-	{FSCTRL1,0x0C},
-	{FSCTRL0,0x00},
-	{FREQ2,0x10},
-	{FREQ1,0xA7},
-	{FREQ0,0x62},
-	{MDMCFG4,0x5B},
-	{MDMCFG3,0xF8},
-	{MDMCFG2,0x93},
-	{MDMCFG1,0x23},
-	{MDMCFG0,0xF8},
-	{DEVIATN,0x47},
-	{MCSM2,0x07},
-	{MCSM1,0x30},
-	{MCSM0,0x08},
-	{FOCCFG,0x1D},
-	{BSCFG,0x1C},
-	{AGCCTRL2,0xC7},
-	{AGCCTRL1,0x00},
-	{AGCCTRL0,0xB2},
-	{WOREVT1,0x87},
-	{WOREVT0,0x6B},
-	{WORCTRL,0xFB},
-	{FREND1,0xB6},
-	{FREND0,0x10},
-	{FSCAL3,0xEA},
-	{FSCAL2,0x2A},
-	{FSCAL1,0x00},
-	{FSCAL0,0x1F},
-	{RCCTRL1,0x41},
-	{RCCTRL0,0x00},
-	{FSTEST,0x59},
-	{PTEST,0x7F},
-	{AGCTEST,0x3F},
-	{TEST2,0x81},
-	{TEST1,0x35},
-	{TEST0,0x09}	
-};
-#endif
 int radio_init(void)
 {
 
@@ -116,7 +46,7 @@ int radio_init(void)
 		writeByte = preferredSettings[i].data;
 		trx8BitRegAccess(RADIO_WRITE_ACCESS, preferredSettings[i].addr, &writeByte, 1);
 	}
-#if 1
+#if 0
 	for(i = 0; i < preferredSettings_length; i++) {
 		uint8 readByte = 0;
 		trx8BitRegAccess(RADIO_READ_ACCESS, preferredSettings[i].addr, &readByte, 1);
@@ -126,11 +56,10 @@ int radio_init(void)
 			uart_write_string("rf reg set failed\r\n");
 	}
 	#endif
-	//radio_set_freq(433000);
 	return 0;
 }
 int radio_send(unsigned char *payload, unsigned short payload_len) {
-	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_SINGLE_ACCESS, TXFIFO, &payload_len, 1);
+	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_SINGLE_ACCESS, TXFIFO, (unsigned char *)&payload_len, 1);
 
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
 
@@ -190,14 +119,15 @@ int radio_set_freq(unsigned long freq) {
 	freq_byte[2] = ((uint8*)&freq_word)[0];
 	freq_byte[1] = ((uint8*)&freq_word)[1];
 	freq_byte[0] = ((uint8*)&freq_word)[2];
-	if (freq_byte[2] != 0x62 || freq_byte[1] != 0xa7 || freq_byte[0] != 0x10)
-		uart_write_string("set freq to 433 failed\r\n");
-	else
-		uart_write_string("set freq to 433 ok\r\n");
+	//if (freq_byte[2] != 0x62 || freq_byte[1] != 0xa7 || freq_byte[0] != 0x10)
+	//	uart_write_string("set freq to 433 failed\r\n");
+	//else
+	//	uart_write_string("set freq to 433 ok\r\n");
 	// upload the frequency word to the transciver using a 3 byte write
 	trx8BitRegAccess(RADIO_WRITE_ACCESS, FREQ2, &(freq_byte[2]), 1);
 	trx8BitRegAccess(RADIO_WRITE_ACCESS, FREQ1, &(freq_byte[1]), 1);
 	trx8BitRegAccess(RADIO_WRITE_ACCESS, FREQ0, &(freq_byte[0]), 1);
+	trxSpiCmdStrobe(RF_SCAL);
 
 	return 0;
 }

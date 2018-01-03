@@ -1,32 +1,42 @@
-APPNAME=rctl
 MCU=msp430g2553
 
-OBJECTS :=
-OBJECTS += main.o spi.o dbg.o cc1101.o
-
-SUPPORT_PATH=e:/ti/msp430_gcc
+SOURCES :=
+ifeq ($(APPNAME), hand)
+SOURCES += main.c spi.c cc1101.c hand.c
+endif
+ifeq ($(APPNAME), door)
+SOURCES += main.c spi.c cc1101.c door.c
+endif
+ifeq ($(APPNAME), infrar)
+SOURCES += main.c spi.c cc1101.c infrar.c
+endif
+VPATH = ./src
+BUILD_ROOT = ./obj
+ALL_SOURCE_CODE_OBJS = $(addprefix $(BUILD_ROOT)/, $(patsubst %.c, %.o, $(SOURCES)))
+SUPPORT_PATH=c:/ti/msp430_gcc
 
 CC=msp430-elf-gcc
 OBJCOPY=msp430-elf-objcopy
 SIZE=msp430-elf-size
 
 CFLAGS= -mmcu=${MCU} -g -O2 -Wall -Wunused
-INCLUDES = -I${SUPPORT_PATH}/include
+INCLUDES = -I${SUPPORT_PATH}/include -I./inc
 LDLIBS = -L${SUPPORT_PATH}/include
 
-all: ${APPNAME}.hex ${APPNAME}.bin
+all: ${APPNAME}.hex
 
-%.o: %.c
+$(ALL_SOURCE_CODE_OBJS): $(BUILD_ROOT)/%.o: %.c
 	${CC} ${CFLAGS} ${INCLUDES} -c -o $@ $<
 
-${APPNAME}.elf: ${OBJECTS}
+obj/${APPNAME}.elf: ${ALL_SOURCE_CODE_OBJS}
 	${CC} -mmcu=${MCU} ${LDLIBS} -o $@ $^
 
-${APPNAME}.hex: ${APPNAME}.elf
-	${OBJCOPY} -O ihex $< $@
+${APPNAME}.hex: obj/${APPNAME}.elf
+	${OBJCOPY} -O ihex $< bin/$@
+	${SIZE} $<
 ${APPNAME}.bin: ${APPNAME}.elf
 	${OBJCOPY} -S -O binary $< $@
 	${SIZE} $<
 
 clean:
-	rm *.o ${APPNAME}.elf ${APPNAME}.hex ${APPNAME}.bin
+	rm obj/*.o obj/${APPNAME}.elf bin/${APPNAME}.hex ${APPNAME}.bin
