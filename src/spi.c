@@ -27,10 +27,6 @@ void trxRfSpiInterfaceInit(uint8 prescalerValue)
 	RF_POWER_N_PORT_OUT &= ~RF_POWER_N_PIN;
 	__delay_cycles(16000);
 	
-	RF_LED_SEL &= ~RF_LED_N_PIN;
-	RF_LED_DIR |= RF_LED_N_PIN;
-	RF_LED_OUT &= ~RF_LED_N_PIN;
-
 	UCB0CTL1 &= ~UCSWRST;
 	return;
 }
