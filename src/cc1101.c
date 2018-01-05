@@ -131,4 +131,26 @@ int radio_set_freq(unsigned long freq) {
 
 	return 0;
 }
+unsigned short CRC(unsigned char *Data,unsigned char Data_length)
+{
+	unsigned int mid=0;
+	unsigned char times=0,Data_index=0;
+	unsigned short CRC_data=0xFFFF;
+	while(Data_length)
+	{
+		CRC_data=Data[Data_index]^CRC_data;
+		for(times=0;times<8;times++)
+		{
+			mid=CRC_data;
+			CRC_data=CRC_data>>1;
+			if(mid & 0x0001)
+			{
+				CRC_data=CRC_data^0xA001;
+			}
+		}
+		Data_index++;
+		Data_length--;
+	}
+	return CRC_data;
+}
 

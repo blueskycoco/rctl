@@ -40,4 +40,5 @@ int radio_send(unsigned char *payload, unsigned short payload_len);
 int radio_read(unsigned char *buf, unsigned short *buf_len);
 int radio_set_freq(unsigned long freq);
 int radio_receive_on(void);
+unsigned short CRC(unsigned char *Data,unsigned char Data_length);
 #endif
