@@ -11,16 +11,16 @@
   * 3 get battery val
   * 4 send out
   */
-#define ID_CODE			0x000001
+#define ID_CODE			0x00000001
 #define DEVICE_TYPE		0x01
-#define	CMD_PROTECT_ON	0x01
-#define	CMD_PROTECT_OFF	0x02
-#define	CMD_ALARM		0x03
-#define	CMD_MUTE		0x04
+#define	CMD_PROTECT_ON	0x02
+#define	CMD_PROTECT_OFF	0x04
+#define	CMD_ALARM		0x06
+#define	CMD_MUTE		0x0e
 #define MSG_HEAD0		0x6c
 #define MSG_HEAD1		0xaa
-#define PACKAGE_LEN		12
-#define DATA_LEN		7
+#define PACKAGE_LEN		14
+#define DATA_LEN		9
 #define LED_SEL         P2SEL
 #define LED_OUT         P2OUT
 #define LED_DIR         P2DIR
@@ -104,21 +104,23 @@ void task()
 	}
 	
 	cmd[0] = MSG_HEAD0;cmd[1] = MSG_HEAD1;
-	cmd[2] = DATA_LEN; cmd[4] = DEVICE_TYPE;
-	cmd[5] = ((long)ID_CODE >> 16) & 0xff;
-	cmd[6] = ((long)ID_CODE >> 8) & 0xff;
-	cmd[7] = ((long)ID_CODE >> 0) & 0xff;
+	cmd[2] = DATA_LEN; cmd[3] = 0x00;
+	cmd[5] = DEVICE_TYPE;
+	cmd[6] = ((long)ID_CODE >> 24) & 0xff;
+	cmd[7] = ((long)ID_CODE >> 16) & 0xff;
+	cmd[8] = ((long)ID_CODE >> 8) & 0xff;
+	cmd[9] = ((long)ID_CODE >> 0) & 0xff;
 	unsigned short bat = read_adc();
-	cmd[9] = (bat >> 8) & 0xff;
-	cmd[10] = (bat) & 0xff;
+	cmd[10] = (bat >> 8) & 0xff;
+	cmd[11] = (bat) & 0xff;
 	if (key == 0x01)
-		cmd[3] = 0x01;
+		cmd[4] = CMD_PROTECT_ON;
 	else if (key == 0x02)
-		cmd[3] = 0x02;
+		cmd[4] = CMD_PROTECT_OFF;
 	else if (key == 0x04)
-		cmd[3] = 0x03;
+		cmd[4] = CMD_ALARM;
 	else
-		cmd[3] = 0x04;
+		cmd[4] = CMD_MUTE;
 	unsigned short crc = CRC(cmd, PACKAGE_LEN - 2);
 	cmd[PACKAGE_LEN - 2] = (crc >> 8) & 0xff;
 	cmd[PACKAGE_LEN - 1] = (crc) & 0xff;
