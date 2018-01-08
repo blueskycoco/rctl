@@ -69,8 +69,10 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 		case 10:  
 			{
 				cnt++;
-				LED_OUT ^= LED_N_PIN;
-				if (cnt == 1000)
+				LED_OUT |= LED_N_PIN;
+				__delay_cycles(8000000);
+				LED_OUT &= ~LED_N_PIN;
+				if (cnt == 2700) /*almost 12 hours*/
 				{
 					cnt = 0;
 					__bic_SR_register_on_exit(LPM3_bits);
@@ -92,7 +94,7 @@ void task()
 	LED_OUT &= ~LED_N_PIN;
 	radio_init();
 
-	TACTL = TASSEL_1 + MC_2 + TAIE;
+	TACTL = TASSEL_1 + MC_2 + TAIE + ID0 + ID1;
 	while (1) {		
 		/*ask which state should enter */
 		//radio_send();
