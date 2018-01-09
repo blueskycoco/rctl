@@ -36,7 +36,6 @@ int radio_init(void)
 
 	//hal_timer_init(32768);
 	trxRfSpiInterfaceInit(2);
-
 	trxSpiCmdStrobe(RF_SRES);
 
 	__delay_cycles(16000);
@@ -152,5 +151,26 @@ unsigned short CRC(unsigned char *Data,unsigned char Data_length)
 		Data_length--;
 	}
 	return CRC_data;
+}
+void __attribute__ ((interrupt(ADC10_VECTOR))) ADC10_ISR (void)
+{
+  __bic_SR_register_on_exit(CPUOFF);        // Clear CPUOFF bit from 0(SR)
+}
+unsigned short read_adc()
+{
+	static volatile int adc[10] = {0};
+	int total_adc = 0,i = 0;
+	ADC10CTL1 = CONSEQ_2 + INCH_0;						// Repeat single channel, A0
+	ADC10CTL0 = ADC10SHT_2 +MSC + ADC10ON + ADC10IE;	// Sample & Hold Time + ADC10 ON + Interrupt Enable
+	ADC10DTC1 = 0x0A;									// 10 conversions
+	ADC10AE0 |= 0x01;									// P1.0 ADC option select
+	ADC10CTL0 &= ~ENC;				// Disable Conversion
+    while (ADC10CTL1 & BUSY);		// Wait if ADC10 busy
+    ADC10SA = (int)adc;				// Transfers data to next array (DTC auto increments address)
+    ADC10CTL0 |= ENC + ADC10SC;		// Enable Conversion and conversion start
+    __bis_SR_register(CPUOFF + GIE);// Low Power Mode 0, ADC10_ISR
+    for (i=0; i<10; i++)
+		total_adc += adc[i];
+	return (unsigned short)(total_adc/10);
 }
 

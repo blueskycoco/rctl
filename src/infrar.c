@@ -70,27 +70,6 @@
 unsigned char b_protection_state = 0;	/*protection state*/
 volatile unsigned int cnt = 0;
 volatile unsigned char key = 0x0;
-void __attribute__ ((interrupt(ADC10_VECTOR))) ADC10_ISR (void)
-{
-  __bic_SR_register_on_exit(CPUOFF);        // Clear CPUOFF bit from 0(SR)
-}
-unsigned short read_adc()
-{
-	static volatile int adc[10] = {0};
-	int total_adc = 0,i = 0;
-	ADC10CTL1 = CONSEQ_2 + INCH_0;						// Repeat single channel, A0
-	ADC10CTL0 = ADC10SHT_2 +MSC + ADC10ON + ADC10IE;	// Sample & Hold Time + ADC10 ON + Interrupt Enable
-	ADC10DTC1 = 0x0A;									// 10 conversions
-	ADC10AE0 |= 0x01;									// P1.0 ADC option select
-	ADC10CTL0 &= ~ENC;				// Disable Conversion
-    while (ADC10CTL1 & BUSY);		// Wait if ADC10 busy
-    ADC10SA = (int)adc;				// Transfers data to next array (DTC auto increments address)
-    ADC10CTL0 |= ENC + ADC10SC;		// Enable Conversion and conversion start
-    __bis_SR_register(CPUOFF + GIE);// Low Power Mode 0, ADC10_ISR
-    for (i=0; i<10; i++)
-		total_adc += adc[i];
-	return (unsigned short)(total_adc/10);
-}
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
 	switch( TA0IV )	
@@ -100,10 +79,10 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 		case 10:  
 			{
 				cnt++;
-				LED_OUT |= LED_N_PIN;
-				__delay_cycles(8000000);
-				LED_OUT &= ~LED_N_PIN;
-				if (cnt == 2700) /*almost 12 hours*/
+				//LED_OUT |= LED_N_PIN;
+				//__delay_cycles(8000000);
+				//LED_OUT &= ~LED_N_PIN;
+				//if (cnt == 2700) /*almost 12 hours*/
 				{
 					cnt = 0;
 					key |= KEY_BATTERY;
@@ -141,6 +120,8 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 }
 void task()
 {		
+	unsigned char cmd[10] = {0x31};
+	unsigned short len = 10;
 	unsigned short bat = 0;
 	LED_SEL &= ~LED_N_PIN;
 	LED_DIR |= LED_N_PIN;
@@ -169,9 +150,8 @@ void task()
 	
 	INFRAR_POWER_SEL &= ~INFRAR_POWER_N_PIN;
 	INFRAR_POWER_DIR |= INFRAR_POWER_N_PIN;
-	INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
-	radio_init();
-
+	INFRAR_POWER_OUT &= ~INFRAR_POWER_N_PIN;
+	
 	TACTL = TASSEL_1 + MC_2 + TAIE + ID0 + ID1;
 	while (1) {
 		if (b_protection_state == 0)
@@ -181,10 +161,15 @@ void task()
 		__bis_SR_register(LPM3_bits + GIE);
 		if (key & KEY_BATTERY) {
 			key &= ~KEY_BATTERY;
-			bat = read_adc();
-			if (bat < MIN_BAT) {
+			LED_OUT |= LED_N_PIN;
+			radio_init();
+			radio_send(cmd,len);
+			P2OUT |= BIT5;
+			LED_OUT &= ~LED_N_PIN;
+			//bat = read_adc();
+			//if (bat < MIN_BAT) {
 				/*info stm32 low bat*/
-			}
+			//}
 		}
 
 		if (key & KEY_CODE) {
