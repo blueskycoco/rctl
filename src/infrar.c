@@ -26,19 +26,50 @@
 #define LED_SEL         P1SEL
 #define LED_OUT         P1OUT
 #define LED_DIR         P1DIR
-#define LED_N_PIN       BIT4
-#define KEY_SEL         P1SEL
-#define KEY_IN          P1IN
-#define KEY_DIR         P1DIR
-#define KEY_N_PIN0      BIT1
-#define KEY_N_PIN1      BIT2
-#define KEY_N_PIN2      BIT3
-#define POWER_SEL		P1SEL
-#define POWER_OUT		P1OUT
-#define POWER_DIR		P1DIR
-#define POWER_N_PIN		BIT4
+#define LED_N_PIN       BIT3
+
+#define S1_KEY_SEL      P1SEL
+#define S1_KEY_IN       P1IN
+#define S1_KEY_DIR      P1DIR
+#define S1_KEY_REN      P1REN
+#define S1_KEY_IE      	P1IE
+#define S1_KEY_IES      P1IES
+#define S1_KEY_IFG      P1IFG
+#define S1_KEY_N_PIN    BIT2
+
+#define INFRAR_KEY_SEL      P2SEL
+#define INFRAR_KEY_IN       P2IN
+#define INFRAR_KEY_DIR      P2DIR
+#define INFRAR_KEY_REN     	P2REN
+#define INFRAR_KEY_IE  		P2IE
+#define INFRAR_KEY_IES     	P2IES
+#define INFRAR_KEY_IFG     	P2IFG
+#define INFRAR_KEY_N_PIN    BIT4
+
+#define CODE_KEY_SEL      	P1SEL
+#define CODE_KEY_IN       	P1IN
+#define CODE_KEY_DIR      	P1DIR
+#define CODE_KEY_REN      	P1REN
+#define CODE_KEY_IE      	P1IE
+#define CODE_KEY_IES      	P1IES
+#define CODE_KEY_IFG      	P1IFG
+#define CODE_KEY_N_PIN    	BIT1
+
+#define INFRAR_POWER_SEL    P2SEL
+#define INFRAR_POWER_OUT    P2OUT
+#define INFRAR_POWER_DIR    P2DIR
+#define INFRAR_POWER_N_PIN  BIT3
+
+#define KEY_CODE	0x01
+#define KEY_INFRAR	0x02
+#define KEY_S1		0x04
+#define KEY_BATTERY 0x08
+#define KEY_WIRELESS	0x10
+
+#define MIN_BAT		0x96
 unsigned char b_protection_state = 0;	/*protection state*/
 volatile unsigned int cnt = 0;
+volatile unsigned char key = 0x0;
 void __attribute__ ((interrupt(ADC10_VECTOR))) ADC10_ISR (void)
 {
   __bic_SR_register_on_exit(CPUOFF);        // Clear CPUOFF bit from 0(SR)
@@ -75,31 +106,109 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 				if (cnt == 2700) /*almost 12 hours*/
 				{
 					cnt = 0;
+					key |= KEY_BATTERY;
 					__bic_SR_register_on_exit(LPM3_bits);
 				}
 			}
 		break;
 	}
 }
-/*void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
+void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 {  
-	P1OUT ^= BIT0;                            // P1.0 = toggle  
-	P1IFG &= ~BIT3;                           // P1.3 IFG cleared
-}*/	
+	if (CODE_KEY_IFG & CODE_KEY_N_PIN )
+	{
+		key |= KEY_CODE;
+		CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
+	}
+	
+	if (S1_KEY_IFG & S1_KEY_N_PIN )
+	{
+		key |= KEY_S1;
+		S1_KEY_IFG &= ~S1_KEY_N_PIN;
+	}
 
+	if ((key & KEY_CODE) || (key & KEY_S1))
+		__bic_SR_register_on_exit(LPM3_bits);
+}	
+void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
+{  
+	if (INFRAR_KEY_IFG & INFRAR_KEY_N_PIN )
+	{
+		key |= KEY_INFRAR;
+		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
+		__bic_SR_register_on_exit(LPM3_bits);
+	}
+}
 void task()
 {		
+	unsigned short bat = 0;
 	LED_SEL &= ~LED_N_PIN;
 	LED_DIR |= LED_N_PIN;
 	LED_OUT &= ~LED_N_PIN;
+
+	S1_KEY_SEL &= ~S1_KEY_N_PIN;
+	S1_KEY_DIR &= ~S1_KEY_N_PIN;
+	S1_KEY_REN &= ~S1_KEY_N_PIN;
+	S1_KEY_IE  |= S1_KEY_N_PIN;
+	S1_KEY_IES &= ~S1_KEY_N_PIN;
+	S1_KEY_IFG &= ~S1_KEY_N_PIN;
+
+	CODE_KEY_SEL &= ~CODE_KEY_N_PIN;
+	CODE_KEY_DIR &= ~CODE_KEY_N_PIN;
+	CODE_KEY_REN &= ~CODE_KEY_N_PIN;
+	CODE_KEY_IE  |= CODE_KEY_N_PIN;
+	CODE_KEY_IES |= CODE_KEY_N_PIN;
+	CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
+
+	INFRAR_KEY_SEL &= ~INFRAR_KEY_N_PIN;
+	INFRAR_KEY_DIR &= ~INFRAR_KEY_N_PIN;
+	INFRAR_KEY_REN &= ~INFRAR_KEY_N_PIN;
+	INFRAR_KEY_IE  |= INFRAR_KEY_N_PIN;
+	INFRAR_KEY_IES |= INFRAR_KEY_N_PIN;
+	INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
+	
+	INFRAR_POWER_SEL &= ~INFRAR_POWER_N_PIN;
+	INFRAR_POWER_DIR |= INFRAR_POWER_N_PIN;
+	INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
 	radio_init();
 
 	TACTL = TASSEL_1 + MC_2 + TAIE + ID0 + ID1;
-	while (1) {		
-		/*ask which state should enter */
-		//radio_send();
+	while (1) {
+		if (b_protection_state == 0)
+		{	/*get cur protection state*/
+			//radio_send();
+		}
 		__bis_SR_register(LPM3_bits + GIE);
-		//radio_read();
+		if (key & KEY_BATTERY) {
+			key &= ~KEY_BATTERY;
+			bat = read_adc();
+			if (bat < MIN_BAT) {
+				/*info stm32 low bat*/
+			}
+		}
+
+		if (key & KEY_CODE) {
+			key &= ~KEY_CODE;
+			/*send machine code to stm32*/
+		}
+
+		if (key & KEY_S1) {
+			key &= ~KEY_S1;
+			/*send s1 alarm to stm32*/
+		}
+
+		if (key & KEY_INFRAR) {
+			key &= ~KEY_INFRAR;
+			/*send infrar alarm to stm32*/
+			LED_OUT |= LED_N_PIN;
+			__delay_cycles(8000000);
+			LED_OUT &= ~LED_N_PIN;
+		}
+
+		if (key & KEY_WIRELESS) {
+			key &= ~KEY_WIRELESS;
+			/*new data come from stm32*/
+		}
 	}
 	return ;
 }
