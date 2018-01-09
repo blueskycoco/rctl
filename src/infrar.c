@@ -150,8 +150,9 @@ void task()
 	
 	INFRAR_POWER_SEL &= ~INFRAR_POWER_N_PIN;
 	INFRAR_POWER_DIR |= INFRAR_POWER_N_PIN;
-	INFRAR_POWER_OUT &= ~INFRAR_POWER_N_PIN;
-	
+	INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
+		
+			radio_init();
 	TACTL = TASSEL_1 + MC_2 + TAIE + ID0 + ID1;
 	while (1) {
 		if (b_protection_state == 0)
@@ -162,9 +163,10 @@ void task()
 		if (key & KEY_BATTERY) {
 			key &= ~KEY_BATTERY;
 			LED_OUT |= LED_N_PIN;
-			radio_init();
 			radio_send(cmd,len);
-			P2OUT |= BIT5;
+			//radio_read(cmd,&len);
+			__delay_cycles(16000000);
+			//P2OUT |= BIT5;
 			LED_OUT &= ~LED_N_PIN;
 			//bat = read_adc();
 			//if (bat < MIN_BAT) {
@@ -185,9 +187,9 @@ void task()
 		if (key & KEY_INFRAR) {
 			key &= ~KEY_INFRAR;
 			/*send infrar alarm to stm32*/
-			LED_OUT |= LED_N_PIN;
-			__delay_cycles(8000000);
-			LED_OUT &= ~LED_N_PIN;
+			//LED_OUT |= LED_N_PIN;
+			//__delay_cycles(8000000);
+			//LED_OUT &= ~LED_N_PIN;
 		}
 
 		if (key & KEY_WIRELESS) {
