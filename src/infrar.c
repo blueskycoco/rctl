@@ -120,7 +120,9 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 }
 void task()
 {		
-	unsigned char cmd[10] = {0x31};
+	int i=0;
+	unsigned char cmd[10] = {0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x37};
+	unsigned char cmd1[10];
 	unsigned short len = 10;
 	unsigned short bat = 0;
 	LED_SEL &= ~LED_N_PIN;
@@ -151,9 +153,9 @@ void task()
 	INFRAR_POWER_SEL &= ~INFRAR_POWER_N_PIN;
 	INFRAR_POWER_DIR |= INFRAR_POWER_N_PIN;
 	INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
-		
-			radio_init();
-	TACTL = TASSEL_1 + MC_2 + TAIE + ID0 + ID1;
+				
+	radio_init();
+	TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 	while (1) {
 		if (b_protection_state == 0)
 		{	/*get cur protection state*/
@@ -162,12 +164,19 @@ void task()
 		__bis_SR_register(LPM3_bits + GIE);
 		if (key & KEY_BATTERY) {
 			key &= ~KEY_BATTERY;
-			LED_OUT |= LED_N_PIN;
+			//LED_OUT |= LED_N_PIN;	
+			if (i==10)
+				i=0;
+			memset(cmd,0x30+i,len);
 			radio_send(cmd,len);
-			//radio_read(cmd,&len);
-			__delay_cycles(16000000);
-			//P2OUT |= BIT5;
-			LED_OUT &= ~LED_N_PIN;
+			radio_read(cmd1,len);
+			if (memcmp(cmd,cmd1,10) != 0)
+				LED_OUT |= LED_N_PIN;
+			else
+				LED_OUT &= ~LED_N_PIN;
+			radio_sleep();
+			i++;
+			//LED_OUT &= ~LED_N_PIN;
 			//bat = read_adc();
 			//if (bat < MIN_BAT) {
 				/*info stm32 low bat*/

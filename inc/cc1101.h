@@ -42,4 +42,5 @@ int radio_set_freq(unsigned long freq);
 int radio_receive_on(void);
 unsigned short CRC(unsigned char *Data,unsigned char Data_length);
 unsigned short read_adc();
+void radio_sleep();
 #endif

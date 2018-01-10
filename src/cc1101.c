@@ -66,6 +66,7 @@ int radio_send(unsigned char *payload, unsigned short payload_len) {
 	
 	while(!(RF_GDO_IN & RF_GDO_PIN));	
 	while((RF_GDO_IN & RF_GDO_PIN));
+	
 	return(0);
 }
 int radio_read(unsigned char *buf, unsigned short *buf_len) {
@@ -102,6 +103,10 @@ int radio_read(unsigned char *buf, unsigned short *buf_len) {
 
 	/* return status information, CRC OK or NOT OK */
 	return (status[1] & CRC_OK);
+}
+void radio_sleep() {
+	trxSpiCmdStrobe(RF_SIDLE);
+	trxSpiCmdStrobe(RF_SPWD);
 }
 int radio_set_freq(unsigned long freq) {
 
