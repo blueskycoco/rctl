@@ -23,9 +23,9 @@ void trxRfSpiInterfaceInit(uint8 prescalerValue)
 	RF_POWER_N_PORT_SEL &= ~RF_POWER_N_PIN;
 	RF_POWER_N_PORT_DIR |= RF_POWER_N_PIN;
 	RF_POWER_N_PORT_OUT |= RF_POWER_N_PIN;
-	__delay_cycles(16000);
+	__delay_cycles(1000);
 	RF_POWER_N_PORT_OUT &= ~RF_POWER_N_PIN;
-	__delay_cycles(16000);
+	__delay_cycles(1000);
 	
 	UCB0CTL1 &= ~UCSWRST;
 	return;

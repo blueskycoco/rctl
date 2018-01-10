@@ -73,7 +73,7 @@ void task()
 	{
 		while (!(KEY_IN & KEY_N_PIN1)) {
 			i++;
-			__delay_cycles(16000);
+			__delay_cycles(1000);
 			if (i >= 2000) {
 				key = 0x08;
 				break;

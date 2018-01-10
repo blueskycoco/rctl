@@ -35,10 +35,10 @@ int radio_init(void)
 	registerSetting_t *preferredSettings;
 
 	//hal_timer_init(32768);
-	trxRfSpiInterfaceInit(2);
+	trxRfSpiInterfaceInit(0);
 	trxSpiCmdStrobe(RF_SRES);
 
-	__delay_cycles(16000);
+	__delay_cycles(1000);
 	preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);
 	preferredSettings = (registerSetting_t *)preferredSettings_1200bps;
 	for(i = 0; i < preferredSettings_length; i++) {

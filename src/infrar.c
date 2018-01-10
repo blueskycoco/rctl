@@ -122,7 +122,7 @@ void task()
 {		
 	int i=0;
 	unsigned char cmd[10] = {0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x37};
-	unsigned char cmd1[10];
+	unsigned char cmd1[20];
 	unsigned short len = 10;
 	unsigned short bat = 0;
 	LED_SEL &= ~LED_N_PIN;
@@ -168,8 +168,10 @@ void task()
 			if (i==10)
 				i=0;
 			memset(cmd,0x30+i,len);
+			len=10;
 			radio_send(cmd,len);
-			radio_read(cmd1,len);
+			len=20;
+			radio_read(cmd1,&len);
 			if (memcmp(cmd,cmd1,10) != 0)
 				LED_OUT |= LED_N_PIN;
 			else
