@@ -1,3 +1,3 @@
 #! /bin/bash -e
-make
-MSP430Flasher.exe -w rctl.hex -v -g -z [VCC]
+make APPNAME=$1
+MSP430Flasher.exe -w bin/$1.hex -s -v -g -z [VCC]
