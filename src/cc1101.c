@@ -79,9 +79,11 @@ int radio_read(unsigned char *buf, unsigned short *buf_len) {
 	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXBYTES, &pktLen, 1);
 	pktLen = pktLen  & NUM_RXBYTES;
 
+	if (pktLen > 0)
+		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXFIFO, &pktLen, 1);
+		
 	/* make sure the packet size is appropriate, that is 1 -> buffer_size */
 	if ((pktLen > 0) && (pktLen <= *buf_len)) {
-		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXFIFO, &pktLen, 1);
 			//uart_write_string("len is %d\r\n",pktLen);
 		/* retrieve the FIFO content */
 		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, buf, pktLen);

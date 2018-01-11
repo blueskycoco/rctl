@@ -168,14 +168,12 @@ void task()
 			if (i==10)
 				i=0;
 			memset(cmd,0x30+i,len);
-			len=10;
 			radio_send(cmd,len);
-			len=20;
 			radio_read(cmd1,&len);
-			if (memcmp(cmd,cmd1,10) != 0)
+			if (memcmp(cmd,cmd1,10) != 0 || len != 10)
 				LED_OUT |= LED_N_PIN;
-			else
-				LED_OUT &= ~LED_N_PIN;
+			//else
+			//	LED_OUT &= ~LED_N_PIN;
 			radio_sleep();
 			i++;
 			//LED_OUT &= ~LED_N_PIN;
