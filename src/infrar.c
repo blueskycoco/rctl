@@ -109,7 +109,7 @@ void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 	if ((key & KEY_CODE) || (key & KEY_S1))
 		__bic_SR_register_on_exit(LPM3_bits);
 }	
-void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
+/*void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 {  
 	if (INFRAR_KEY_IFG & INFRAR_KEY_N_PIN )
 	{
@@ -117,7 +117,7 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 		__bic_SR_register_on_exit(LPM3_bits);
 	}
-}
+}*/
 void task()
 {		
 	int i=0;
