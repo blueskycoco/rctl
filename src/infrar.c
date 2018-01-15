@@ -86,7 +86,7 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 				{
 					cnt = 0;
 					key |= KEY_BATTERY;
-					__bic_SR_register_on_exit(LPM3_bits);
+					__bic_SR_register_on_exit(LPM0_bits);
 				}
 			}
 		break;
@@ -153,7 +153,12 @@ void task()
 	INFRAR_POWER_SEL &= ~INFRAR_POWER_N_PIN;
 	INFRAR_POWER_DIR |= INFRAR_POWER_N_PIN;
 	INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
-				
+	/*while (1){
+	LED_OUT |= LED_N_PIN;
+	__delay_cycles(1000000);
+	LED_OUT &= ~LED_N_PIN;
+	__delay_cycles(1000);
+	}*/
 	radio_init();
 	TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 	while (1) {
@@ -161,7 +166,7 @@ void task()
 		{	/*get cur protection state*/
 			//radio_send();
 		}
-		__bis_SR_register(LPM3_bits + GIE);
+		__bis_SR_register(LPM0_bits + GIE);
 		if (key & KEY_BATTERY) {
 			key &= ~KEY_BATTERY;
 			//LED_OUT |= LED_N_PIN;	
@@ -169,13 +174,13 @@ void task()
 				i=0;
 			memset(cmd,0x30+i,len);
 			radio_send(cmd,len);
-			radio_read(cmd1,&len);
-			if (memcmp(cmd,cmd1,10) != 0 || len != 10)
-				LED_OUT |= LED_N_PIN;
+			//radio_read(cmd1,&len);
+			//if (memcmp(cmd,cmd1,10) != 0 || len != 10)
+			//	LED_OUT |= LED_N_PIN;
 			//else
 			//	LED_OUT &= ~LED_N_PIN;
 			radio_sleep();
-			i++;
+			i=i+2;
 			//LED_OUT &= ~LED_N_PIN;
 			//bat = read_adc();
 			//if (bat < MIN_BAT) {
