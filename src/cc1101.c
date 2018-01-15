@@ -11,9 +11,12 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{IOCFG2,	0x06},
 	{PKTCTRL0,	0x05},	
 	{FSCTRL1,	0x06},
-	{FREQ2,		0x10},
+/*	{FREQ2,		0x10},
 	{FREQ1,		0xa7},
-	{FREQ0,		0x62},
+	{FREQ0,		0x62},*/	
+	{FREQ2,		0x11},
+	{FREQ1,		0xec},
+	{FREQ0,		0x4e},
 	{MDMCFG4,	0xf5},
 	{MDMCFG3,	0x83},
 	{MDMCFG2,	0x13},
@@ -55,6 +58,7 @@ int radio_init(void)
 			uart_write_string("rf reg set failed\r\n");
 	}
 	#endif
+	//radio_set_freq(466);
 	return 0;
 }
 int radio_send(unsigned char *payload, unsigned short payload_len) {
@@ -133,7 +137,7 @@ int radio_set_freq(unsigned long freq) {
 	trx8BitRegAccess(RADIO_WRITE_ACCESS, FREQ2, &(freq_byte[2]), 1);
 	trx8BitRegAccess(RADIO_WRITE_ACCESS, FREQ1, &(freq_byte[1]), 1);
 	trx8BitRegAccess(RADIO_WRITE_ACCESS, FREQ0, &(freq_byte[0]), 1);
-	trxSpiCmdStrobe(RF_SCAL);
+	//trxSpiCmdStrobe(RF_SCAL);
 
 	return 0;
 }
