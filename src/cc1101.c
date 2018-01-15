@@ -25,6 +25,9 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{MDMCFG3,	0x83},
 	{MDMCFG2,	0x13},
 	{DEVIATN,	0x15},
+	{MCSM1,		0x3f},
+	{AGCCTRL2,	0x07},
+	{AGCCTRL1,	0x40},
 	{MCSM0,		0x18},
 	{FOCCFG,	0x16},
 	{WORCTRL,	0xFB},
@@ -219,7 +222,7 @@ void cca()
 		trxSpiCmdStrobe( RF_STX );
 		//rt_kprintf("go here\r\n");
 
-		__delay_cycles(750);
+		__delay_cycles(700);
 		//rt_thread_delay(3);
 		level = RF_GDO_PxIFG & RF_GDO_PIN;
 		if (level)
@@ -289,11 +292,11 @@ int radio_init(void)
 	return 0;
 }
 int radio_send(unsigned char *payload, unsigned short payload_len) {
-	//Mrfi_RxModeOff();
+	Mrfi_RxModeOff();
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_SINGLE_ACCESS, TXFIFO, (unsigned char *)&payload_len, 1);
 
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
-	#if 1
+	#if 0
 	//cca();
 	trxSpiCmdStrobe(RF_STX);               // Change state to TX, initiating	
 
