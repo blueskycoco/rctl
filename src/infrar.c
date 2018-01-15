@@ -160,7 +160,7 @@ void task()
 	__delay_cycles(1000);
 	}*/
 	radio_init();
-	TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
+	TACTL = TASSEL_2 + MC_2 + TAIE + ID0;
 	while (1) {
 		if (b_protection_state == 0)
 		{	/*get cur protection state*/
