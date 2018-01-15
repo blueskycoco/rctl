@@ -86,7 +86,7 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 				{
 					cnt = 0;
 					key |= KEY_BATTERY;
-					__bic_SR_register_on_exit(LPM0_bits);
+					__bic_SR_register_on_exit(LPM3_bits);
 				}
 			}
 		break;
@@ -160,13 +160,13 @@ void task()
 	__delay_cycles(1000);
 	}*/
 	radio_init();
-	TACTL = TASSEL_2 + MC_2 + TAIE + ID0;
+	TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 	while (1) {
 		if (b_protection_state == 0)
 		{	/*get cur protection state*/
 			//radio_send();
 		}
-		__bis_SR_register(LPM0_bits + GIE);
+		__bis_SR_register(LPM3_bits + GIE);
 		if (key & KEY_BATTERY) {
 			key &= ~KEY_BATTERY;
 			//LED_OUT |= LED_N_PIN;	
