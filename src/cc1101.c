@@ -13,6 +13,7 @@ const registerSetting_t preferredSettings_1200bps[]=
 {
 #if 1
 	{IOCFG2,	0x06},
+	{IOCFG0,	0x1b},
 	{PKTCTRL0,	0x05},	
 	{FSCTRL1,	0x06},
 /*	{FREQ2,		0x10},
@@ -25,9 +26,9 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{MDMCFG3,	0x83},
 	{MDMCFG2,	0x13},
 	{DEVIATN,	0x15},
-	{MCSM1,		0x3f},
 	{AGCCTRL2,	0x07},
 	{AGCCTRL1,	0x40},
+	{MCSM1,	0x3f},
 	{MCSM0,		0x18},
 	{FOCCFG,	0x16},
 	{WORCTRL,	0xFB},
@@ -209,30 +210,21 @@ void cca()
 	uint8_t ccaRetries = 4;
 	uint8_t papd = 0x1b;
 	uint8_t sync = 0x06;
-	uint8_t level = 0;
-	trx8BitRegAccess(RADIO_WRITE_ACCESS, IOCFG2, &papd, 1);
+//	trx8BitRegAccess(RADIO_WRITE_ACCESS, IOCFG2, &papd, 1);
 	for (;;)
 	{
 		trxSpiCmdStrobe( RF_SRX );
 
 		MRFI_RSSI_VALID_WAIT();
 
-		RF_GDO_PxIFG	&= ~RF_GDO_PIN;
-		//clearIntFlag();
+		RF_GDO0_PxIFG	&= ~RF_GDO0_PIN;
 		trxSpiCmdStrobe( RF_STX );
-		//rt_kprintf("go here\r\n");
 
 		__delay_cycles(700);
-		//rt_thread_delay(3);
-		level = RF_GDO_PxIFG & RF_GDO_PIN;
-		if (level)
+		if (RF_GDO0_PxIFG & RF_GDO0_PIN)
 		{
-			//RF_GDO_PxIFG	&= ~RF_GDO_PIN;
-			//clearIntFlag();
-			//rt_kprintf("before here\r\n");
-			while (!(RF_GDO_IN & RF_GDO_PIN));
-			RF_GDO_PxIFG	&= ~RF_GDO_PIN;
-			//rt_kprintf("break here\r\n");
+			RF_GDO0_PxIFG	&= ~RF_GDO0_PIN;
+			while (!(RF_GDO0_IN & RF_GDO0_PIN));
 			break;
 		}
 		else
@@ -245,20 +237,17 @@ void cca()
 			{
 				//Mrfi_RandomBackoffDelay();
 				__delay_cycles(25);
-				//rt_thread_delay(1);
 				ccaRetries--;
 			}
 			else 
 			{
-				//rt_kprintf("timeout\r\n");
 				break;
 			}
 		} 
 	} 
 	trxSpiCmdStrobe( RF_SFTX );
-	trx8BitRegAccess(RADIO_WRITE_ACCESS, IOCFG2, &sync, 1);
+//	trx8BitRegAccess(RADIO_WRITE_ACCESS, IOCFG2, &sync, 1);
 	Mrfi_RxModeOn();
-	//rt_kprintf("return \r\n");
 }
 int radio_init(void)
 {
@@ -296,7 +285,7 @@ int radio_send(unsigned char *payload, unsigned short payload_len) {
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_SINGLE_ACCESS, TXFIFO, (unsigned char *)&payload_len, 1);
 
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
-	#if 0
+	#if 1
 	//cca();
 	trxSpiCmdStrobe(RF_STX);               // Change state to TX, initiating	
 
