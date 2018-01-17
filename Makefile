@@ -39,4 +39,4 @@ ${APPNAME}.bin: ${APPNAME}.elf
 	${SIZE} $<
 
 clean:
-	rm obj/*.o obj/${APPNAME}.elf bin/${APPNAME}.hex ${APPNAME}.bin
+	-rm obj/*.o obj/${APPNAME}.elf bin/${APPNAME}.hex ${APPNAME}.bin
