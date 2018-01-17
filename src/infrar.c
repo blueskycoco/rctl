@@ -170,8 +170,8 @@ void task()
 		if (key & KEY_BATTERY) {
 			key &= ~KEY_BATTERY;
 			//LED_OUT |= LED_N_PIN;	
-			if (i==10)
-				i=0;
+			//if (i==10)
+				i=9;
 			memset(cmd,0x30+i,len);
 			radio_send(cmd,len);
 			//radio_read(cmd1,&len);
@@ -180,7 +180,7 @@ void task()
 			//else
 			//	LED_OUT &= ~LED_N_PIN;
 			radio_sleep();
-			i=i+2;
+			//i=i+2;
 			//LED_OUT &= ~LED_N_PIN;
 			//bat = read_adc();
 			//if (bat < MIN_BAT) {

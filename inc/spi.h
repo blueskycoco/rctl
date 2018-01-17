@@ -31,6 +31,14 @@
 #define     RF_GDO_PxIE            P2IE
 #define     RF_GDO_PIN             BIT0
 
+#define     RF_GDO0_OUT             P2OUT
+#define     RF_GDO0_DIR             P2DIR
+#define     RF_GDO0_IN              P2IN
+#define     RF_GDO0_SEL             P2SEL
+#define     RF_GDO0_PxIES           P2IES
+#define     RF_GDO0_PxIFG           P2IFG
+#define     RF_GDO0_PxIE            P2IE
+#define     RF_GDO0_PIN             BIT1
 
 #define RF_SPI_BEGIN()              st( RF_CS_N_PORT_OUT &= ~RF_CS_N_PIN; NOP(); )
 #define RF_SPI_TX(x)                st( IFG2 &= ~UCB0RXIFG; UCB0TXBUF= (x); )
