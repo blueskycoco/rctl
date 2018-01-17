@@ -254,9 +254,8 @@ int radio_read(unsigned char *buf, unsigned short *buf_len) {
 	if ((pktLen > 0) && (pktLen <= *buf_len)) {
 		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, buf, pktLen);
 
-		//*buf_len = pktLen;
-		trx8BitRegAccess(RADIO_READ_ACCESS+RADIO_BURST_ACCESS, RXFIFO, status, 2);
 		*buf_len = pktLen;
+		trx8BitRegAccess(RADIO_READ_ACCESS+RADIO_BURST_ACCESS, RXFIFO, status, 2);
 	} else {
 		*buf_len = 0;
 		status[1] = 0;
