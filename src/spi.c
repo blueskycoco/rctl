@@ -5,6 +5,7 @@
 
 void trxRfSpiInterfaceInit(uint8 prescalerValue)
 {
+	#if 0
 	UCB0CTL1 |= UCSWRST;
 	UCB0CTL0  =  0x00+UCMST + UCSYNC + UCMODE_0 + UCMSB + UCCKPH;
 	UCB0CTL1 |=  UCSSEL_2;
@@ -34,9 +35,99 @@ void trxRfSpiInterfaceInit(uint8 prescalerValue)
 	__delay_cycles(1000);
 	
 	UCB0CTL1 &= ~UCSWRST;
+	#else
+	RF_CS_N_PORT_SEL &= ~RF_CS_N_PIN;
+	RF_CS_N_PORT_DIR |= RF_CS_N_PIN;
+	RF_CS_N_PORT_OUT |= RF_CS_N_PIN;
+
+	
+	RF_PORT_SEL &= ~RF_MOSI_PIN;
+	RF_PORT_DIR |= RF_MOSI_PIN;
+	RF_PORT_OUT |= RF_MOSI_PIN;
+
+	RF_PORT_SEL &= ~RF_MISO_PIN;
+	RF_PORT_DIR &= ~RF_MISO_PIN;
+
+	RF_PORT_SEL &= ~RF_SCLK_PIN;
+	RF_PORT_DIR |= RF_SCLK_PIN;
+	RF_PORT_OUT |= RF_SCLK_PIN;
+
+	RF_GDO_SEL &= ~RF_GDO_PIN;
+	RF_GDO_DIR &= ~RF_GDO_PIN;
+	RF_GDO_PxIES	|= RF_GDO_PIN;	
+
+	RF_GDO0_SEL &= ~RF_GDO0_PIN;
+	RF_GDO0_DIR &= ~RF_GDO0_PIN;
+	RF_GDO0_PxIES	|= RF_GDO0_PIN;
+	
+	RF_POWER_N_PORT_SEL &= ~RF_POWER_N_PIN;
+	RF_POWER_N_PORT_DIR |= RF_POWER_N_PIN;
+	RF_POWER_N_PORT_OUT |= RF_POWER_N_PIN;
+	__delay_cycles(1000);
+	RF_POWER_N_PORT_OUT &= ~RF_POWER_N_PIN;
+	__delay_cycles(1000);
+	#endif
 	return;
 }
+void mosi(int type)
+{
+    if(type)
+    {
+        RF_PORT_OUT |= RF_MOSI_PIN;
+    }
+    else
+    {
+		RF_PORT_OUT &= ~RF_MOSI_PIN;		
+    }
+}
+void clk(int type)
+{
+    if(type)
+    {
+        RF_PORT_OUT |= RF_SCLK_PIN;
+    }
+    else
+    {
+        RF_PORT_OUT &= ~RF_SCLK_PIN;
+    }
+}
+int miso()
+{
+    return RF_PORT_DIR & RF_MISO_PIN;
+}
+void _nop_()
+{
+    volatile long i,j;
+    for(i=0;i<1;i++)
+        j=0;
+}
+uint8_t spi_send_rcv(uint8_t data)
+{
+    uint8_t i,temp;
+    temp = 0;
 
+    clk(0);
+    for(i=0; i<8; i++)
+    {
+        if(data & 0x80)
+        {
+            mosi(1);
+        }
+        else mosi(0);
+        data <<= 1;
+
+        clk(1); 
+        _nop_();
+        _nop_();
+
+        temp <<= 1;
+        if(miso())temp++; 
+        clk(0);
+        _nop_();
+        _nop_();	
+    }
+    return temp;
+}
 static void trxReadWriteBurstSingle(uint8 addr,uint8 *pData,uint16 len)
 {
 	uint16 i;
@@ -46,17 +137,13 @@ static void trxReadWriteBurstSingle(uint8 addr,uint8 *pData,uint16 len)
 		{
 			for (i = 0; i < len; i++)
 			{
-				RF_SPI_TX(0);   
-				RF_SPI_WAIT_DONE();
-				*pData = RF_SPI_RX();   
+				*pData = spi_send_rcv(0);
 				pData++;
 			}
 		}
 		else
 		{
-			RF_SPI_TX(0);
-			RF_SPI_WAIT_DONE();
-			*pData = RF_SPI_RX();
+			*pData = spi_send_rcv(0);
 		}
 	}
 	else
@@ -65,15 +152,13 @@ static void trxReadWriteBurstSingle(uint8 addr,uint8 *pData,uint16 len)
 		{
 			for (i = 0; i < len; i++)
 			{
-				RF_SPI_TX(*pData);
-				RF_SPI_WAIT_DONE();
+				spi_send_rcv(*pData);
 				pData++;
 			}
 		}
 		else
 		{
-			RF_SPI_TX(*pData);
-			RF_SPI_WAIT_DONE();
+			spi_send_rcv(*pData);
 		}
 	}
 	return;
@@ -81,12 +166,9 @@ static void trxReadWriteBurstSingle(uint8 addr,uint8 *pData,uint16 len)
 rfStatus_t trx8BitRegAccess(uint8 accessType, uint8 addrByte, uint8 *pData, uint16 len)
 {
 	uint8 readValue;
-
 	RF_SPI_BEGIN();
-	while(RF_PORT_IN & RF_MISO_PIN);
-	RF_SPI_TX(accessType|addrByte);
-	RF_SPI_WAIT_DONE();
-	readValue = RF_SPI_RX();
+	while(miso());
+	readValue = spi_send_rcv(accessType|addrByte);
 	trxReadWriteBurstSingle(accessType|addrByte,pData,len);
 	RF_SPI_END();
 	return(readValue);
@@ -96,12 +178,11 @@ rfStatus_t trxSpiCmdStrobe(uint8 cmd)
 {
 	uint8 rc;
 	RF_SPI_BEGIN();
-	while(RF_PORT_IN & RF_MISO_PIN);
-	RF_SPI_TX(cmd);
-	RF_SPI_WAIT_DONE();
-	rc = RF_SPI_RX();
+	while(miso());
+	rc = spi_send_rcv(cmd);
 	RF_SPI_END();
 	return(rc);
 }
+
 
 
