@@ -52,7 +52,7 @@ void task()
 		len += 2;
 		radio_send(cmd,len);
 		radio_read(cmd1,&len);
-		if (memcmp(cmd,cmd1,len) !=0 || len != 10)
+		if (memcmp(cmd+2,cmd1+2,10) !=0 || len != 12)
 			LED_OUT |= LED_N_PIN;		
 		radio_sleep();
 		i=i+1;
