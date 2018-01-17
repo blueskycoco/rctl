@@ -28,7 +28,7 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{DEVIATN,	0x15},
 	{AGCCTRL2,	0x07},
 	{AGCCTRL1,	0x40},
-	{MCSM1,	0x3f},
+	{MCSM1,		0x3f},
 	{MCSM0,		0x18},
 	{FOCCFG,	0x16},
 	{WORCTRL,	0xFB},
@@ -80,14 +80,14 @@ void MRFI_RSSI_VALID_WAIT()
   unsigned char status;															
   do                                                                          
   {	
-  	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, PKTSTATUS, &status, 1); 
+  	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, PKTSTATUS, &status, 1); 
     if(status & (0x50))  
     {                                                                         
       break;                                                                  
     }                                                                         
-    __delay_cycles(64); /* sleep */                                           
+    __delay_cycles(64);
     delay -= 64;                                                              
-  }while(delay > 0);                                                          
+  }while(delay > 0);
 }        
 
 void MRFI_STROBE_IDLE_AND_WAIT()                   
@@ -142,7 +142,7 @@ void create_seed()
 	MRFI_RSSI_VALID_WAIT();	
 	for(uint8_t i=0; i<16; i++)
 	{
-		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RSSI, &rssi, 1);
+		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RSSI, &rssi, 1);
 		mrfiRndSeed = (mrfiRndSeed << 1) | (rssi & 0x01);
 		Mrfi_CalculateRssi(rssi);
 	}
@@ -210,13 +210,12 @@ void cca()
 	uint8_t ccaRetries = 4;
 	uint8_t papd = 0x1b;
 	uint8_t sync = 0x06;
-//	trx8BitRegAccess(RADIO_WRITE_ACCESS, IOCFG2, &papd, 1);
 	for (;;)
 	{
 		trxSpiCmdStrobe( RF_SRX );
 
 		MRFI_RSSI_VALID_WAIT();
-
+		
 		RF_GDO0_PxIFG	&= ~RF_GDO0_PIN;
 		trxSpiCmdStrobe( RF_STX );
 
@@ -235,8 +234,8 @@ void cca()
 
 			if (ccaRetries != 0)
 			{
-				//Mrfi_RandomBackoffDelay();
-				__delay_cycles(25);
+				Mrfi_RandomBackoffDelay();
+				//__delay_cycles(25);
 				ccaRetries--;
 			}
 			else 
@@ -246,7 +245,6 @@ void cca()
 		} 
 	} 
 	trxSpiCmdStrobe( RF_SFTX );
-//	trx8BitRegAccess(RADIO_WRITE_ACCESS, IOCFG2, &sync, 1);
 	Mrfi_RxModeOn();
 }
 int radio_init(void)
@@ -266,7 +264,7 @@ int radio_init(void)
 		writeByte = preferredSettings[i].data;
 		trx8BitRegAccess(RADIO_WRITE_ACCESS, preferredSettings[i].addr, &writeByte, 1);
 	}
-	//create_seed();
+	create_seed();
 	#if 0
 	for(i = 0; i < preferredSettings_length; i++) {
 		uint8 readByte = 0;
@@ -285,13 +283,13 @@ int radio_send(unsigned char *payload, unsigned short payload_len) {
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_SINGLE_ACCESS, TXFIFO, (unsigned char *)&payload_len, 1);
 
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
-	#if 1
+	#if 0
 	//cca();
 	trxSpiCmdStrobe(RF_STX);               // Change state to TX, initiating	
 
 	while(!(RF_GDO_IN & RF_GDO_PIN));	
 	while((RF_GDO_IN & RF_GDO_PIN));
-	#else
+	#else	
 	cca();
 	#endif
 	return(0);
