@@ -15,6 +15,8 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{IOCFG0,	0x1b},
 	{PKTCTRL0,	0x05},	
 	{FSCTRL1,	0x06},
+	{ADDR,		0x02},
+	{PKTCTRL1,	0x05},	
 	#if 0
 	{FREQ2,		0x10},
 	{FREQ1,		0xa7},
@@ -163,7 +165,7 @@ static void Mrfi_RxModeOn(void)
 
   trxSpiCmdStrobe( RF_SRX );
 
- RF_GDO_PxIE	|= RF_GDO_PIN;
+ //RF_GDO_PxIE	|= RF_GDO_PIN;
 }
 
 void cca()
@@ -240,9 +242,9 @@ int radio_read(unsigned char *buf, unsigned short *buf_len) {
 	unsigned char status[2];
 	unsigned char pktLen;
 	//trxSpiCmdStrobe(RF_SRX);
-	while(!(RF_GDO_IN & RF_GDO_PIN));	
+	while(!(RF_GDO_IN & RF_GDO_PIN));
 	while((RF_GDO_IN & RF_GDO_PIN));
-	
+
 	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXBYTES, &pktLen, 1);
 	pktLen = pktLen  & NUM_RXBYTES;
 
