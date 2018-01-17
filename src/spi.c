@@ -97,9 +97,10 @@ int miso()
 }
 void _nop_()
 {
-    volatile long i,j;
-    for(i=0;i<1;i++)
-        j=0;
+    //volatile long i,j;
+    //for(i=0;i<20;i++)
+    //   j=0;
+    NOP();
 }
 uint8_t spi_send_rcv(uint8_t data)
 {
