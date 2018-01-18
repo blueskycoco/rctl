@@ -93,14 +93,15 @@ void clk(int type)
 }
 int miso()
 {
-    return RF_PORT_DIR & RF_MISO_PIN;
+    return RF_PORT_IN & RF_MISO_PIN;
 }
 void _nop_()
 {
     //volatile long i,j;
     //for(i=0;i<20;i++)
     //   j=0;
-    NOP();
+    //NOP();
+    __delay_cycles(1);
 }
 uint8_t spi_send_rcv(uint8_t data)
 {

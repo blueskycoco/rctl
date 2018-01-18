@@ -226,7 +226,7 @@ int radio_init(void)
 		writeByte = preferredSettings[i].data;
 		trx8BitRegAccess(RADIO_WRITE_ACCESS, preferredSettings[i].addr, &writeByte, 1);
 	}
-	create_seed();
+	//create_seed();
 	return 0;
 }
 int radio_send(unsigned char *payload, unsigned short payload_len) {
@@ -239,7 +239,7 @@ int radio_send(unsigned char *payload, unsigned short payload_len) {
 	return(0);
 }
 int radio_read(unsigned char *buf, unsigned short *buf_len) {
-	unsigned char status[2];
+	unsigned char status[2]={0};
 	unsigned char pktLen;
 	//trxSpiCmdStrobe(RF_SRX);
 	while(!(RF_GDO_IN & RF_GDO_PIN));

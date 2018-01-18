@@ -31,9 +31,9 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 }
 void task()
 {		
-	int i=0;
+	int i=7;
 	unsigned char cmd[12] = {0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x37};
-	unsigned char cmd1[20];
+	unsigned char cmd1[20] = {0};
 	unsigned short len = 10;
 	LED_SEL &= ~LED_N_PIN;
 	LED_DIR |= LED_N_PIN;
