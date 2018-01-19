@@ -101,7 +101,7 @@ void _nop_()
     //for(i=0;i<20;i++)
     //   j=0;
     //NOP();
-    __delay_cycles(1);
+    __delay_cycles(10);
 }
 uint8_t spi_send_rcv(uint8_t data)
 {

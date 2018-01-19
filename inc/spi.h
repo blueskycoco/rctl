@@ -1,6 +1,7 @@
 #ifndef _SPI_H
 #define _SPI_H
 #include "macro.h"
+#ifdef OLD_CUSTOMER_BOARD
 #define     RF_PORT_SEL            P2SEL
 #define     RF_PORT_OUT            P2OUT
 #define     RF_PORT_DIR            P2DIR
@@ -10,16 +11,30 @@
 #define     RF_MISO_PIN            BIT3
 #define     RF_SCLK_PIN            BIT4
 
-#define     RF_CS_N_PORT_SEL       P2SEL
-#define     RF_CS_N_PORT_DIR       P2DIR
-#define     RF_CS_N_PORT_OUT       P2OUT
-#define     RF_CS_N_PIN            BIT2
-
 #define 	RF_POWER_N_PORT_SEL 	P1SEL
 #define     RF_POWER_N_PORT_DIR     P1DIR
 #define     RF_POWER_N_PORT_OUT     P1OUT
 #define     RF_POWER_N_PIN          BIT7
+#else
+#define     RF_PORT_SEL            P1SEL
+#define     RF_PORT_OUT            P1OUT
+#define     RF_PORT_DIR            P1DIR
+#define     RF_PORT_IN             P1IN
 
+#define     RF_MOSI_PIN            BIT7
+#define     RF_MISO_PIN            BIT6
+#define     RF_SCLK_PIN            BIT5
+
+#define 	RF_POWER_N_PORT_SEL 	P2SEL
+#define     RF_POWER_N_PORT_DIR     P2DIR
+#define     RF_POWER_N_PORT_OUT     P2OUT
+#define     RF_POWER_N_PIN          BIT5
+#endif
+
+#define     RF_CS_N_PORT_SEL       P2SEL
+#define     RF_CS_N_PORT_DIR       P2DIR
+#define     RF_CS_N_PORT_OUT       P2OUT
+#define     RF_CS_N_PIN            BIT2
 /*use GDO2 as int */
 #define     RF_PORT_VECTOR         PORT2_VECTOR
 #define     RF_GDO_OUT             P2OUT
