@@ -1,8 +1,10 @@
 MCU=msp430g2553
 
 SOURCES :=
+CFLAGS= -mmcu=${MCU} -g -O2 -Wall -Wunused
 ifeq ($(APPNAME), hand)
 SOURCES += main.c spi.c cc1101.c hand.c
+CFLAGS += -DHAND
 endif
 ifeq ($(APPNAME), door)
 SOURCES += main.c spi.c cc1101.c door.c
@@ -19,7 +21,6 @@ CC=msp430-elf-gcc
 OBJCOPY=msp430-elf-objcopy
 SIZE=msp430-elf-size
 
-CFLAGS= -mmcu=${MCU} -g -O2 -Wall -Wunused
 INCLUDES = -I${SUPPORT_PATH}/include -I./inc
 LDLIBS = -L${SUPPORT_PATH}/include
 

@@ -224,16 +224,23 @@ int radio_init(void)
 		writeByte = preferredSettings[i].data;
 		trx8BitRegAccess(RADIO_WRITE_ACCESS, preferredSettings[i].addr, &writeByte, 1);
 	}
-	create_seed();
+	//create_seed();
 	return 0;
 }
 int radio_send(unsigned char *payload, unsigned short payload_len) {
 
+	#ifndef HAND
 	Mrfi_RxModeOff();
+	#endif
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_SINGLE_ACCESS, TXFIFO, (unsigned char *)&payload_len, 1);
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
-	
+	#ifndef HAND
 	cca();
+	#else
+	trxSpiCmdStrobe(RF_STX);
+	while (!(RF_GDO0_IN & RF_GDO0_PIN));
+	while ((RF_GDO0_IN & RF_GDO0_PIN));
+	#endif
 	return(0);
 }
 int radio_read(unsigned char *buf, unsigned short *buf_len) {
