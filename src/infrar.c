@@ -45,13 +45,15 @@ void task()
 	LED_OUT &= ~LED_N_PIN;
 	__delay_cycles(500000);
 	LED_OUT |= LED_N_PIN;
+	__delay_cycles(500000);
+	LED_OUT &= ~LED_N_PIN;
 
 	radio_init();
 	CCR0 = 8192;
 	TACTL = TASSEL_1 + MC_1 + TAIE + ID0;
 	while (1) {
 		__bis_SR_register(LPM3_bits + GIE);
-		LED_OUT ^= LED_N_PIN;
+		//LED_OUT ^= LED_N_PIN;
 		if (i==10)
 		i=0;
 		len = 10;
@@ -61,9 +63,9 @@ void task()
 		len += 2;*/
 		memset(cmd,0x30+i,len);
 		radio_send(cmd,len);
-		//radio_read(cmd1,&len);
-		//if (memcmp(cmd,cmd1,10) !=0 || len != 10)
-		//	LED_OUT |= LED_N_PIN;		
+		radio_read(cmd1,&len);
+		if (memcmp(cmd,cmd1,10) !=0 || len != 10)
+			LED_OUT |= LED_N_PIN;		
 		radio_sleep();
 		softDog = 0;
 		i=i+1;

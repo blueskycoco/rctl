@@ -16,8 +16,8 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{PKTCTRL0,	0x05},	
 	{FSCTRL1,	0x06},
 	{ADDR,		0x02},
-	{PKTCTRL1,	0x05},	
-	#if 0
+//	{PKTCTRL1,	0x05},	
+	#if 1
 	{FREQ2,		0x10},
 	{FREQ1,		0xa7},
 	{FREQ0,		0x62},
