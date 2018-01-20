@@ -42,13 +42,12 @@ void task()
 	unsigned char cmd[PACKAGE_LEN] = {0x00};
 	unsigned short cmd_len = PACKAGE_LEN;
 	int i=0;
-	//while(1) {
 	POWER_SEL &= ~POWER_N_PIN;
 	POWER_DIR |= POWER_N_PIN;
 	POWER_OUT |= POWER_N_PIN;
 	LED_SEL &= ~LED_N_PIN;
 	LED_DIR |= LED_N_PIN;
-	//LED_OUT |= LED_N_PIN;
+	LED_OUT |= LED_N_PIN;
 	KEY_SEL &= ~KEY_N_PIN0;
 	KEY_DIR &= ~KEY_N_PIN0;
 	KEY_SEL &= ~KEY_N_PIN1;
@@ -62,7 +61,7 @@ void task()
 		key |= 0x02;
 	if (!(KEY_IN & KEY_N_PIN2))
 		key |= 0x04;
-#if 0
+
 	if (key != 0x01 && key != 0x02 && key != 0x04)
 	{
 		LED_OUT &= ~LED_N_PIN;
@@ -81,7 +80,7 @@ void task()
 			}
 		}
 	}
-	#endif
+
 	cmd[0] = MSG_HEAD0;cmd[1] = MSG_HEAD1;
 	cmd[2] = DATA_LEN; cmd[3] = 0x00;
 	cmd[5] = DEVICE_TYPE;
@@ -103,13 +102,14 @@ void task()
 	unsigned short crc = CRC(cmd, PACKAGE_LEN - 2);
 	cmd[PACKAGE_LEN - 2] = (crc >> 8) & 0xff;
 	cmd[PACKAGE_LEN - 1] = (crc) & 0xff;
-	//LED_OUT |= LED_N_PIN;
-	radio_init();	
-	memset(cmd,0x24,cmd_len);	
-	radio_send(cmd, cmd_len);	
-	LED_OUT ^= LED_N_PIN;
+	LED_OUT |= LED_N_PIN;
+	radio_init();
+	for (i=0;i<3;i++) {
+	//memset(cmd, 0x24, cmd_len);
+	radio_send(cmd, cmd_len);
+	__delay_cycles(100000);
+	}
+	LED_OUT &= ~LED_N_PIN;
 	POWER_OUT &= ~POWER_N_PIN;
-	//__delay_cycles(10000000);
-	//}
 	return ;
 }
