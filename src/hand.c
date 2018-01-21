@@ -35,13 +35,32 @@
 #define POWER_OUT		P1OUT
 #define POWER_DIR		P1DIR
 #define POWER_N_PIN		BIT4
+volatile unsigned int cnt = 0;
+volatile unsigned int flag = 1;
+void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
+{  	
+	switch( TA0IV )	
+	{
+		case  2:  break;
+		case  4:  break;
+		case 10:  
+			{
+				if (!(KEY_IN & KEY_N_PIN1))
+					cnt++;
+				else
+					flag = 0;
+				__bic_SR_register_on_exit(LPM3_bits);
+			}
+		break;
+	}
+}
 
 void task()
 {	
 	unsigned char key = 0x00;
 	unsigned char cmd[PACKAGE_LEN] = {0x00};
 	unsigned short cmd_len = PACKAGE_LEN;
-	int i=0;
+	int i=0,j=0;
 	POWER_SEL &= ~POWER_N_PIN;
 	POWER_DIR |= POWER_N_PIN;
 	POWER_OUT |= POWER_N_PIN;
@@ -56,11 +75,11 @@ void task()
 	KEY_DIR &= ~KEY_N_PIN2;
 	
 	if (!(KEY_IN & KEY_N_PIN0))
-		key |= 0x01;
+		key = 0x01;
 	if (!(KEY_IN & KEY_N_PIN1))
-		key |= 0x02;
+		key = 0x02;
 	if (!(KEY_IN & KEY_N_PIN2))
-		key |= 0x04;
+		key = 0x04;
 
 	if (key != 0x01 && key != 0x02 && key != 0x04)
 	{
@@ -71,10 +90,10 @@ void task()
 
 	if (key == 0x02)
 	{
-		while (!(KEY_IN & KEY_N_PIN1)) {
-			i++;
-			__delay_cycles(1000);
-			if (i >= 2000) {
+		TACTL = TASSEL_1 + MC_2 + TAIE;
+		while (flag) {
+			__bis_SR_register(LPM3_bits + GIE);
+			if (cnt > 2) {
 				key = 0x08;
 				break;
 			}
@@ -105,9 +124,9 @@ void task()
 	LED_OUT |= LED_N_PIN;
 	radio_init();
 	for (i=0;i<3;i++) {
-	//memset(cmd, 0x24, cmd_len);
+	//memset(cmd, 0x36, cmd_len);
 	radio_send(cmd, cmd_len);
-	__delay_cycles(100000);
+	__delay_cycles(300000);
 	}
 	LED_OUT &= ~LED_N_PIN;
 	POWER_OUT &= ~POWER_N_PIN;
