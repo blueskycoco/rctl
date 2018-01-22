@@ -45,10 +45,6 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 		case  4:  break;
 		case 10:  
 			{
-				//if (!(KEY_IN & KEY_N_PIN1))
-				//	cnt++;
-				//else
-				//	flag = 0;
 				__bic_SR_register_on_exit(LPM3_bits);
 			}
 		break;
@@ -105,15 +101,9 @@ void task()
 		P1IE  |= KEY_N_PIN1;
 	
 		TACTL = TASSEL_1 + MC_2 + TAIE;
-		//while (flag) {
 		__bis_SR_register(LPM3_bits + GIE);
-		//	if (cnt > 2) {
-		//		key = 0x08;
-		//		break;
-		//	}
 		if (!(KEY_IN & KEY_N_PIN1))
-		key = 0x08;
-		//}
+			key = 0x08;
 		TACTL = MC_0;
 	}
 

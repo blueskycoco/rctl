@@ -49,10 +49,10 @@ void MRFI_RSSI_VALID_WAIT()
   do                                                                          
   {	
   	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, PKTSTATUS, &status, 1); 
-    if(status & (0x50))  
-    {                                                                         
+    if(status & (0x50))
+    {
       break;                                                                  
-    }                                                                         
+    }
     __delay_cycles(64);
     delay -= 64;                                                              
   }while(delay > 0);
