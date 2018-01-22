@@ -45,15 +45,23 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 		case  4:  break;
 		case 10:  
 			{
-				if (!(KEY_IN & KEY_N_PIN1))
-					cnt++;
-				else
-					flag = 0;
+				//if (!(KEY_IN & KEY_N_PIN1))
+				//	cnt++;
+				//else
+				//	flag = 0;
 				__bic_SR_register_on_exit(LPM3_bits);
 			}
 		break;
 	}
 }
+void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
+{  
+	if (P1IFG & KEY_N_PIN1 )
+	{
+		P1IFG &= ~KEY_N_PIN1;
+		__bic_SR_register_on_exit(LPM3_bits);
+	}	
+}	
 
 void task()
 {	
@@ -87,17 +95,26 @@ void task()
 		POWER_OUT &= ~POWER_N_PIN;
 		return ;
 	}
+	radio_init();
 
-	if (key == 0x02)
+	if (!(KEY_IN & KEY_N_PIN1))
 	{
+		P1REN &= ~KEY_N_PIN1;
+		P1IES &= ~KEY_N_PIN1;
+		P1IFG &= ~KEY_N_PIN1;
+		P1IE  |= KEY_N_PIN1;
+	
 		TACTL = TASSEL_1 + MC_2 + TAIE;
-		while (flag) {
-			__bis_SR_register(LPM3_bits + GIE);
-			if (cnt > 2) {
-				key = 0x08;
-				break;
-			}
-		}
+		//while (flag) {
+		__bis_SR_register(LPM3_bits + GIE);
+		//	if (cnt > 2) {
+		//		key = 0x08;
+		//		break;
+		//	}
+		if (!(KEY_IN & KEY_N_PIN1))
+		key = 0x08;
+		//}
+		TACTL = MC_0;
 	}
 
 	cmd[0] = MSG_HEAD0;cmd[1] = MSG_HEAD1;
@@ -122,7 +139,7 @@ void task()
 	cmd[PACKAGE_LEN - 2] = (crc >> 8) & 0xff;
 	cmd[PACKAGE_LEN - 1] = (crc) & 0xff;
 	LED_OUT |= LED_N_PIN;
-	radio_init();
+	//radio_init();
 	for (i=0;i<3;i++) {
 	//memset(cmd, 0x36, cmd_len);
 	radio_send(cmd, cmd_len);
