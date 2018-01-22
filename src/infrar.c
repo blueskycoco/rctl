@@ -12,7 +12,8 @@
   * 4 loop get battery status
   */
 #define ID_CODE			0x00000001
-#define CMD_REG_CODE	0x00
+#define CMD_REG_CODE		0x0000
+#define CMD_REG_CODE_ACK	0x0014
 #define CMD_LOW_POWER	0x0C
 #define DEVICE_TYPE		0x02
 #define	CMD_PROTECT_ON	0x02
@@ -21,7 +22,7 @@
 #define	CMD_MUTE		0x0e
 #define MSG_HEAD0		0x6c
 #define MSG_HEAD1		0xaa
-#define PACKAGE_LEN		14
+#define PACKAGE_LEN		16
 #define DATA_LEN		9
 #define LED_SEL         P1SEL
 #define LED_OUT         P1OUT
@@ -63,13 +64,19 @@
 #define KEY_CODE	0x01
 #define KEY_INFRAR	0x02
 #define KEY_S1		0x04
-#define KEY_BATTERY 0x08
+#define KEY_TIMER 	0x08
 #define KEY_WIRELESS	0x10
 
+#define STATE_ASK_CC1101_ADDR		0
+#define STATE_CONFIRM_CC1101_ADDR	1
+#define STATE_PROTECT_ON			2
+#define STATE_PROTECT_OFF			3
+unsigned char g_state = STATE_ASK_CC1101_ADDR;
 #define MIN_BAT		0x96
 unsigned char b_protection_state = 0;	/*protection state*/
-volatile unsigned int cnt = 0;
 volatile unsigned char key = 0x0;
+unsigned char stm32_id[6] = {0};
+unsigned char cc1101_addr = 0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
 	switch( TA0IV )	
@@ -78,16 +85,8 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 		case  4:  break;
 		case 10:  
 			{
-				cnt++;
-				//LED_OUT |= LED_N_PIN;
-				//__delay_cycles(8000000);
-				//LED_OUT &= ~LED_N_PIN;
-				//if (cnt == 2700) /*almost 12 hours*/
-				{
-					cnt = 0;
-					key |= KEY_BATTERY;
+					key |= KEY_TIMER;
 					__bic_SR_register_on_exit(LPM3_bits);
-				}
 			}
 		break;
 	}
@@ -97,27 +96,85 @@ void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 	if (CODE_KEY_IFG & CODE_KEY_N_PIN )
 	{
 		key |= KEY_CODE;
-		CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
+		//CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
 	}
 	
 	if (S1_KEY_IFG & S1_KEY_N_PIN )
 	{
 		key |= KEY_S1;
-		S1_KEY_IFG &= ~S1_KEY_N_PIN;
+		//S1_KEY_IFG &= ~S1_KEY_N_PIN;
 	}
 
 	if ((key & KEY_CODE) || (key & KEY_S1))
 		__bic_SR_register_on_exit(LPM3_bits);
 }	
-/*void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
+void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 {  
 	if (INFRAR_KEY_IFG & INFRAR_KEY_N_PIN )
 	{
 		key |= KEY_INFRAR;
-		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
+		//INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 		__bic_SR_register_on_exit(LPM3_bits);
 	}
-}*/
+	
+	if (INFRAR_KEY_IFG & BIT0 )
+	{
+		key |= KEY_WIRELESS;
+		//INFRAR_KEY_IFG &= ~BIT0;
+		__bic_SR_register_on_exit(LPM3_bits);
+	}
+}
+
+void request_cc1101_addr() 
+{	
+	unsigned char cmd[PACKAGE_LEN] = {0x00};
+	unsigned short cmd_len = PACKAGE_LEN;
+	cmd[0] = 0x01;cmd[1] = cc1101_addr;
+	cmd[2] = MSG_HEAD0;cmd[3] = MSG_HEAD1;
+	cmd[4] = DATA_LEN; cmd[5] = (CMD_REG_CODE >> 8) & 0xff;
+	cmd[6] = CMD_REG_CODE & 0xff;
+	cmd[7] = DEVICE_TYPE;
+	cmd[8] = ((long)ID_CODE >> 24) & 0xff;
+	cmd[9] = ((long)ID_CODE >> 16) & 0xff;
+	cmd[10] = ((long)ID_CODE >> 8) & 0xff;
+	cmd[11] = ((long)ID_CODE >> 0) & 0xff;
+	unsigned short bat = read_adc();
+	cmd[12] = (bat >> 8) & 0xff;
+	cmd[13] = (bat) & 0xff;	
+	unsigned short crc = CRC(cmd, PACKAGE_LEN - 2);
+	cmd[PACKAGE_LEN - 2] = (crc >> 8) & 0xff;
+	cmd[PACKAGE_LEN - 1] = (crc) & 0xff;
+	radio_send(cmd, cmd_len);
+	
+	P2REN &= ~BIT0;
+	P2IES &= ~BIT0;
+	P2IFG &= ~BIT0;
+	P2IE  |= BIT0;
+}
+void handle_cc1101()
+{
+	unsigned char resp[32] = {0};
+	unsigned char len = 32;
+	int result = radio_read(resp, &len);
+	
+	if (result !=0 && len > 0) {
+		if (resp[2] != MSG_HEAD0 || resp[3] != MSG_HEAD1)
+			return ;
+		unsigned short crc = CRC(resp, resp[4]+5);
+		if (crc != (resp[resp[4]+4] <<8 | resp[resp[4]+5])) //???
+			return ;
+	}
+
+	switch (g_state) {
+		case STATE_ASK_CC1101_ADDR:
+			if ((resp[5]<<8|resp[6]) == CMD_REG_CODE_ACK) {
+				if (resp[7] == 0x01 && stm32_id[0]=0) {
+					memcpy(stm32_id, resp+8, 6);
+					cc1101_addr = resp[9];
+				}
+			}
+	}	
+}
 void task()
 {		
 	int i=0;
@@ -153,63 +210,48 @@ void task()
 	INFRAR_POWER_SEL &= ~INFRAR_POWER_N_PIN;
 	INFRAR_POWER_DIR |= INFRAR_POWER_N_PIN;
 	INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
-	/*while (1){
-	LED_OUT |= LED_N_PIN;
-	__delay_cycles(1000000);
-	LED_OUT &= ~LED_N_PIN;
-	__delay_cycles(1000);
-	}*/
-	radio_init();
 	TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
+	radio_init();
+	request_cc1101_addr();
 	while (1) {
-		if (b_protection_state == 0)
-		{	/*get cur protection state*/
-			//radio_send();
-		}
 		__bis_SR_register(LPM3_bits + GIE);
-		if (key & KEY_BATTERY) {
-			key &= ~KEY_BATTERY;
-			//LED_OUT |= LED_N_PIN;	
-			//if (i==10)
-				i=9;
-			memset(cmd,0x30+i,len);
-			radio_send(cmd,len);
-			//radio_read(cmd1,&len);
-			//if (memcmp(cmd,cmd1,10) != 0 || len != 10)
-			//	LED_OUT |= LED_N_PIN;
-			//else
-			//	LED_OUT &= ~LED_N_PIN;
-			radio_sleep();
-			//i=i+2;
-			//LED_OUT &= ~LED_N_PIN;
-			//bat = read_adc();
-			//if (bat < MIN_BAT) {
-				/*info stm32 low bat*/
-			//}
+		_DINT();
+		NOP();
+		if (key & KEY_TIMER) {
+			key &= ~KEY_TIMER;
+			handle_timer();
+			//radio_send(cmd,len);
+			//radio_sleep();
 		}
 
 		if (key & KEY_CODE) {
 			key &= ~KEY_CODE;
 			/*send machine code to stm32*/
+			handle_code();
+			CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
 		}
 
 		if (key & KEY_S1) {
 			key &= ~KEY_S1;
 			/*send s1 alarm to stm32*/
+			handle_s1();
+			S1_KEY_IFG &= ~S1_KEY_N_PIN;
 		}
 
 		if (key & KEY_INFRAR) {
 			key &= ~KEY_INFRAR;
 			/*send infrar alarm to stm32*/
-			//LED_OUT |= LED_N_PIN;
-			//__delay_cycles(8000000);
-			//LED_OUT &= ~LED_N_PIN;
+			handle_infrar();
+			INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 		}
 
 		if (key & KEY_WIRELESS) {
 			key &= ~KEY_WIRELESS;
 			/*new data come from stm32*/
+			handle_cc1101();
+			INFRAR_KEY_IFG &= ~BIT0;
 		}
+		_EINT();
 	}
 	return ;
 }

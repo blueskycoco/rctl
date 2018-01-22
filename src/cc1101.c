@@ -238,8 +238,8 @@ int radio_send(unsigned char *payload, unsigned short payload_len) {
 	cca();
 	#else
 	trxSpiCmdStrobe(RF_STX);
-	while (!(RF_GDO0_IN & RF_GDO0_PIN));
-	while ((RF_GDO0_IN & RF_GDO0_PIN));
+	//while (!(RF_GDO0_IN & RF_GDO0_PIN));
+	//while ((RF_GDO0_IN & RF_GDO0_PIN));
 	#endif
 	return(0);
 }
