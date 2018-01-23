@@ -88,8 +88,8 @@ unsigned char g_state = STATE_ASK_CC1101_ADDR;
 unsigned char b_protection_state = 0;	/*protection state*/
 unsigned char last_sub_cmd = 0x00; /*0x01 s1_alarm, 0x02 infrar_alarm, 0x04 low_power_alarm, 0x08 cur_status*/
 volatile unsigned char key = 0x0;
-unsigned char stm32_id[6] = {0};
-unsigned char zero_id[6] = {0};
+unsigned char stm32_id[STM32_CODE_LEN] = {0};
+unsigned char zero_id[STM32_CODE_LEN] = {0};
 unsigned char cc1101_addr = 0;
 #define STM32_ADDR	0x01
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
@@ -150,7 +150,7 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 		memset(cmd+ofs, 0, STM32_CODE_LEN);
 	else
 		memcpy(cmd+ofs, id, STM32_CODE_LEN);
-		
+	ofs += STM32_CODE_LEN;	
 	cmd[ofs++] = ((long)ID_CODE >> 24) & 0xff;
 	cmd[ofs++] = ((long)ID_CODE >> 16) & 0xff;
 	cmd[ofs++] = ((long)ID_CODE >> 8) & 0xff;
@@ -180,7 +180,7 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 	P2IFG &= ~BIT0;
 	P2IE  |= BIT0;
 }
-void handle_cc1101_cmd(uint16_t cmd, uint8_t sub_cmd) 
+void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd) 
 {	
 	unsigned char cmd[32] = {0x00};
 	unsigned char ofs = 0;
@@ -188,13 +188,14 @@ void handle_cc1101_cmd(uint16_t cmd, uint8_t sub_cmd)
 	cmd[0] = STM32_ADDR;cmd[1] = cc1101_addr;
 	cmd[2] = MSG_HEAD0;cmd[3] = MSG_HEAD1;
 	ofs = 5;
-	memcpy(cmd+ofs, stm32_id, STM32_CODE_LEN);		
+	memcpy(cmd+ofs, stm32_id, STM32_CODE_LEN);	
+	ofs += STM32_CODE_LEN;
 	cmd[ofs++] = ((long)ID_CODE >> 24) & 0xff;
 	cmd[ofs++] = ((long)ID_CODE >> 16) & 0xff;
 	cmd[ofs++] = ((long)ID_CODE >> 8) & 0xff;
 	cmd[ofs++] = ((long)ID_CODE >> 0) & 0xff;
-	cmd[ofs++] = (cmd >> 8) & 0xff;
-	cmd[ofs++] = cmd & 0xff;
+	cmd[ofs++] = (main_cmd >> 8) & 0xff;
+	cmd[ofs++] = main_cmd & 0xff;
 	cmd[ofs++] = sub_cmd;
 
 	if (cmd == CMD_ALARM) {
@@ -228,7 +229,7 @@ void switch_protect(unsigned char state)
 		/*switch to protect on*/
 		//timer off
 		//infrar int on
-		TACTL = MC_0;
+		//TACTL = MC_0;
 		INFRAR_KEY_IE  |= INFRAR_KEY_N_PIN;
 	} else {
 		/*switch to protect off*/
@@ -258,11 +259,11 @@ void handle_cc1101_resp()
 		if (crc != (resp[len+3] << 8 | resp[len+4]))
 			return ;
 		/*check subdevice id = local device id*/
-		if (memcmp(ID_CODE, resp+10, 4) !=0)
+		if (memcmp(ID_CODE, resp+10, ID_CODE_LEN) !=0)
 			return ;
 		/*check stm32 id = saved stm32 id*/
-		if (memcmp(stm32_id , zero_id, 6) !=0) {
-			if (memcmp(stm32_id, resp+5, 6) !=0 && g_state !=STATE_ASK_CC1101_ADDR)
+		if (memcmp(stm32_id , zero_id, STM32_CODE_LEN) !=0) {
+			if (memcmp(stm32_id, resp+5, STM32_CODE_LEN) !=0 && g_state !=STATE_ASK_CC1101_ADDR)
 				return ;
 		}
 	}
@@ -270,9 +271,11 @@ void handle_cc1101_resp()
 	switch (cmd_type) {
 		case CMD_REG_CODE_ACK:	
 			if (resp[len+2] == 0x01 && cc1101_addr == 0) {
-				memcpy(stm32_id, resp+8, 8);
+				memcpy(stm32_id, resp+8, STM32_CODE_LEN);
 				cc1101_addr = resp[20];
+				unsigned char pkt = 0x05;
 				trx8BitRegAccess(RADIO_WRITE_ACCESS, ADDR, &cc1101_addr, 1);
+				trx8BitRegAccess(RADIO_WRITE_ACCESS, PKTCTRL1, &pkt, 1);
 				handle_cc1101_addr(stm32_id, 1);
 			} else {
 				handle_cc1101_addr(resp+8, 0);
@@ -298,7 +301,6 @@ void handle_cc1101_resp()
 				default:
 					break;		
 			}
-			TACTL = MC_0;
 			break;
 		case CMD_LOW_POWER_ACK:
 		case CMD_CUR_STATUS_ACK:
@@ -309,10 +311,32 @@ void handle_cc1101_resp()
 				last_sub_cmd &= 0x04;
 			if (cmd_type == CMD_CUR_STATUS_ACK)
 				last_sub_cmd &= 0x08;
-			TACTL = MC_0;
 			break;
 		default:
 			break;
+	}
+
+	if (last_sub_cmd == 0 && b_protection_state)		
+		TACTL = MC_0;
+}
+void handle_timer()
+{
+	if (g_state == STATE_ASK_CC1101_ADDR)
+		handle_cc1101_addr(NULL, 0);
+	else if (g_state == STATE_CONFIRM_CC1101_ADDR)
+		handle_cc1101_addr(stm32_id, 1);
+	else {
+		if (last_sub_cmd & 0x02)
+			handle_cc1101_cmd(CMD_ALARM,0x01);
+
+		if (last_sub_cmd & 0x01)
+			handle_cc1101_cmd(CMD_ALARM,0x02);
+
+		if (last_sub_cmd & 0x04)
+			handle_cc1101_cmd(CMD_LOW_POWER,0x00);
+
+		if (last_sub_cmd & 0x08 || !b_protection_state)
+			handle_cc1101_cmd(CMD_CUR_STATUS,0x00);
 	}
 }
 void task()
@@ -367,8 +391,10 @@ void task()
 		if (key & KEY_CODE) {
 			key &= ~KEY_CODE;
 			/*send machine code to stm32*/
-			memset(stm32_id, 0, 6);
-			cc1101_addr = 0x0;
+			memset(stm32_id, 0, STM32_CODE_LEN);
+			cc1101_addr = 0x0;			
+			unsigned char pkt = 0x06;
+			trx8BitRegAccess(RADIO_WRITE_ACCESS, PKTCTRL1, &pkt, 1);
 			handle_cc1101_addr(NULL,0);
 			CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
 		}
@@ -396,6 +422,7 @@ void task()
 			INFRAR_KEY_IFG &= ~BIT0;
 			P2IE  |= BIT0;
 		}
+		NOP();
 		_EINT();
 	}
 	return ;
