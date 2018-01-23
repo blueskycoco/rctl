@@ -77,6 +77,7 @@ unsigned char b_protection_state = 0;	/*protection state*/
 volatile unsigned char key = 0x0;
 unsigned char stm32_id[6] = {0};
 unsigned char cc1101_addr = 0;
+#define STM32_ADDR	0x01
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
 	switch( TA0IV )	
@@ -129,7 +130,7 @@ void request_cc1101_addr()
 {	
 	unsigned char cmd[PACKAGE_LEN] = {0x00};
 	unsigned short cmd_len = PACKAGE_LEN;
-	cmd[0] = 0x01;cmd[1] = cc1101_addr;
+	cmd[0] = STM32_ADDR;cmd[1] = cc1101_addr;
 	cmd[2] = MSG_HEAD0;cmd[3] = MSG_HEAD1;
 	cmd[4] = DATA_LEN; cmd[5] = (CMD_REG_CODE >> 8) & 0xff;
 	cmd[6] = CMD_REG_CODE & 0xff;
@@ -161,16 +162,20 @@ void handle_cc1101()
 		if (resp[2] != MSG_HEAD0 || resp[3] != MSG_HEAD1)
 			return ;
 		unsigned short crc = CRC(resp, resp[4]+5);
-		if (crc != (resp[resp[4]+4] <<8 | resp[resp[4]+5])) //???
+		/*check crc*/
+		if (crc != (resp[resp[4]+4] << 8 | resp[resp[4]+5]))
+			return ;
+		/*check subdevice id = local device id*/
+		if (memcmp(ID_CODE, resp+14, 4) !=0)
 			return ;
 	}
 
 	switch (g_state) {
 		case STATE_ASK_CC1101_ADDR:
 			if ((resp[5]<<8|resp[6]) == CMD_REG_CODE_ACK) {
-				if (resp[7] == 0x01 && stm32_id[0]=0) {
-					memcpy(stm32_id, resp+8, 6);
-					cc1101_addr = resp[9];
+				if (resp[7] == 0x01 && cc1101_addr == 0) {
+					memcpy(stm32_id, resp+8, 8);
+					cc1101_addr = resp[20];
 				}
 			}
 	}	
