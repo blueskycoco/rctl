@@ -126,12 +126,14 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 	if (INFRAR_KEY_IFG & INFRAR_KEY_N_PIN )
 	{
 		key |= KEY_INFRAR;
+		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
 		__bic_SR_register_on_exit(LPM3_bits);
 	}
 	
 	if (INFRAR_KEY_IFG & BIT0 )
 	{
 		key |= KEY_WIRELESS;
+		INFRAR_KEY_IE  &= ~BIT0;
 		__bic_SR_register_on_exit(LPM3_bits);
 	}
 }
@@ -161,8 +163,8 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 		cmd[ofs++] = DEVICE_TYPE;
 		cmd[ofs++] = DEVICE_MODE;
 	} else {		
-		cmd[ofs++] = (CMD_REG_CODE_ACK >> 8) & 0xff;
-		cmd[ofs++] = CMD_REG_CODE_ACK & 0xff;
+		cmd[ofs++] = (CMD_CONFIRM_CODE >> 8) & 0xff;
+		cmd[ofs++] = CMD_CONFIRM_CODE & 0xff;
 		cmd[ofs++] = res;
 		cmd[ofs++] = cc1101_addr;
 	}
@@ -198,14 +200,14 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	cmd[ofs++] = main_cmd & 0xff;
 	cmd[ofs++] = sub_cmd;
 
-	if (cmd == CMD_ALARM) {
+	if (main_cmd == CMD_ALARM) {
 		if (sub_cmd == 0x01)
 			last_sub_cmd |= 0x02;
 		else if(sub_cmd == 0x02)
 			last_sub_cmd |= 0x01;
-	} else if (cmd == CMD_LOW_POWER) {
+	} else if (main_cmd == CMD_LOW_POWER) {
 		last_sub_cmd |= 0x04;
-	} else if (cmd == CMD_CUR_STATUS) {
+	} else if (main_cmd == CMD_CUR_STATUS) {
 		last_sub_cmd |= 0x08;
 	}
 	
@@ -218,7 +220,8 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	cmd[ofs++] = (crc) & 0xff;
 	cmd[4] = ofs-5; 
 	radio_send(cmd, ofs);
-	TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
+	if (TACTL == MC_0)
+		TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 	P2IE  |= BIT0;
 }
 
@@ -231,12 +234,14 @@ void switch_protect(unsigned char state)
 		//infrar int on
 		//TACTL = MC_0;
 		INFRAR_KEY_IE  |= INFRAR_KEY_N_PIN;
+		INFRAR_POWER_OUT &= ~INFRAR_POWER_N_PIN;
 	} else {
 		/*switch to protect off*/
 		//timer on
 		//infrar int off
 		TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
+		INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
 	}				
 }
 /*	
@@ -254,12 +259,12 @@ void handle_cc1101_resp()
 		if (resp[2] != MSG_HEAD0 || resp[3] != MSG_HEAD1)
 			return ;		
 		len = resp[4];
-		unsigned short crc = CRC(resp, len+5);
+		unsigned short crc = CRC(resp, len+3);
 		/*check crc*/
 		if (crc != (resp[len+3] << 8 | resp[len+4]))
 			return ;
 		/*check subdevice id = local device id*/
-		if (memcmp(ID_CODE, resp+10, ID_CODE_LEN) !=0)
+		if (ID_CODE !=((resp[11]<<24)|(resp[12]<<16)|(resp[13]<<8)|(resp[14]<<0)))
 			return ;
 		/*check stm32 id = saved stm32 id*/
 		if (memcmp(stm32_id , zero_id, STM32_CODE_LEN) !=0) {
@@ -267,12 +272,12 @@ void handle_cc1101_resp()
 				return ;
 		}
 	}
-	cmd_type = resp[5]<<8 | resp[6];
+	cmd_type = resp[15]<<8 | resp[16];
 	switch (cmd_type) {
 		case CMD_REG_CODE_ACK:	
-			if (resp[len+2] == 0x01 && cc1101_addr == 0) {
-				memcpy(stm32_id, resp+8, STM32_CODE_LEN);
-				cc1101_addr = resp[20];
+			if (resp[len+2] != 0x00 && cc1101_addr == 0) {/*if get vaild addr && curr addr ==0*/
+				memcpy(stm32_id, resp+5, STM32_CODE_LEN);
+				cc1101_addr = resp[18];
 				unsigned char pkt = 0x05;
 				trx8BitRegAccess(RADIO_WRITE_ACCESS, ADDR, &cc1101_addr, 1);
 				trx8BitRegAccess(RADIO_WRITE_ACCESS, PKTCTRL1, &pkt, 1);
@@ -293,10 +298,10 @@ void handle_cc1101_resp()
 			}
 			switch (resp[len+1]) {
 				case 0x01:
-					last_sub_cmd &= 0x02;
+					last_sub_cmd &= ~0x02;
 					break;
 				case 0x02:
-					last_sub_cmd &= 0x01;
+					last_sub_cmd &= ~0x01;
 					break;
 				default:
 					break;		
@@ -308,16 +313,20 @@ void handle_cc1101_resp()
 				switch_protect(resp[len+2]);
 			}
 			if (cmd_type == CMD_LOW_POWER_ACK)
-				last_sub_cmd &= 0x04;
+				last_sub_cmd &= ~0x04;
 			if (cmd_type == CMD_CUR_STATUS_ACK)
-				last_sub_cmd &= 0x08;
+				last_sub_cmd &= ~0x08;
 			break;
 		default:
 			break;
 	}
 
-	if (last_sub_cmd == 0 && b_protection_state)		
+	if (last_sub_cmd == 0 && b_protection_state)
+	{
 		TACTL = MC_0;
+	}
+	if (last_sub_cmd == 0)
+		radio_sleep();
 }
 void handle_timer()
 {
@@ -326,11 +335,14 @@ void handle_timer()
 	else if (g_state == STATE_CONFIRM_CC1101_ADDR)
 		handle_cc1101_addr(stm32_id, 1);
 	else {
-		if (last_sub_cmd & 0x02)
-			handle_cc1101_cmd(CMD_ALARM,0x01);
-
 		if (last_sub_cmd & 0x01)
 			handle_cc1101_cmd(CMD_ALARM,0x02);
+		if (b_protection_state) {
+			if (last_sub_cmd & 0x02)
+				handle_cc1101_cmd(CMD_ALARM,0x01);
+		} else {
+			last_sub_cmd &= ~0x02;
+		}
 
 		if (last_sub_cmd & 0x04)
 			handle_cc1101_cmd(CMD_LOW_POWER,0x00);
@@ -367,7 +379,7 @@ void task()
 	INFRAR_KEY_SEL &= ~INFRAR_KEY_N_PIN;
 	INFRAR_KEY_DIR &= ~INFRAR_KEY_N_PIN;
 	INFRAR_KEY_REN &= ~INFRAR_KEY_N_PIN;
-	INFRAR_KEY_IE  |= INFRAR_KEY_N_PIN;
+	INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
 	INFRAR_KEY_IES |= INFRAR_KEY_N_PIN;
 	INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 	
@@ -411,13 +423,16 @@ void task()
 			/*send infrar alarm to stm32*/
 			//add int count then make decision
 			handle_cc1101_cmd(CMD_ALARM, 0x02);
+			LED_OUT ^= LED_N_PIN;
+			//__delay_cycles(100000);
 			INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
+			INFRAR_KEY_IE |= INFRAR_KEY_N_PIN;
 		}
 
 		if (key & KEY_WIRELESS) {
 			key &= ~KEY_WIRELESS;
 			/*new data come from stm32*/
-			P2IE  &= ~BIT0;
+			//P2IE  &= ~BIT0;
 			handle_cc1101_resp();
 			INFRAR_KEY_IFG &= ~BIT0;
 			P2IE  |= BIT0;
