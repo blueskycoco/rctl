@@ -111,11 +111,13 @@ void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 	if (CODE_KEY_IFG & CODE_KEY_N_PIN )
 	{
 		key |= KEY_CODE;
+		CODE_KEY_IE  &= ~CODE_KEY_N_PIN;
 	}
 	
 	if (S1_KEY_IFG & S1_KEY_N_PIN )
 	{
 		key |= KEY_S1;
+		S1_KEY_IE  &= ~S1_KEY_N_PIN;
 	}
 
 	if ((key & KEY_CODE) || (key & KEY_S1))
@@ -408,8 +410,11 @@ void task()
 			cc1101_addr = 0x0;			
 			unsigned char pkt = 0x06;
 			trx8BitRegAccess(RADIO_WRITE_ACCESS, PKTCTRL1, &pkt, 1);
+			g_state = STATE_ASK_CC1101_ADDR;
+			b_protection_state =0;
 			handle_cc1101_addr(NULL,0);
 			CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
+			CODE_KEY_IE |= CODE_KEY_N_PIN;
 		}
 
 		if (key & KEY_S1) {
@@ -417,12 +422,14 @@ void task()
 			/*send s1 alarm to stm32*/
 			handle_cc1101_cmd(CMD_ALARM, 0x01);
 			S1_KEY_IFG &= ~S1_KEY_N_PIN;
+			S1_KEY_IE  |= S1_KEY_N_PIN;
 		}
 
 		if (key & KEY_INFRAR) {
 			key &= ~KEY_INFRAR;
 			/*send infrar alarm to stm32*/
 			//add int count then make decision
+			if (b_protection_state)
 			handle_cc1101_cmd(CMD_ALARM, 0x02);
 			LED_OUT ^= LED_N_PIN;
 			//__delay_cycles(100000);
