@@ -176,11 +176,12 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 	cmd[ofs++] = (crc) & 0xff;
 	cmd[4] = ofs-5; 
 	radio_send(cmd, ofs);
-	
-	P2REN &= ~BIT0;
-	P2IES &= ~BIT0;
-	P2IFG &= ~BIT0;
-	P2IE  |= BIT0;
+	if (id == NULL) {
+		P2REN &= ~BIT0;
+		//P2IES &= ~BIT0;
+		P2IFG &= ~BIT0;
+		P2IE  |= BIT0;
+	}
 }
 void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd) 
 {	
