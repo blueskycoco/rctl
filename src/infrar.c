@@ -224,7 +224,7 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	cmd[4] = ofs-5; 
 	radio_send(cmd, ofs);
 	if (TACTL == MC_0)
-		TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
+		TACTL = TASSEL_1 + MC_2 + TAIE;
 	P2IE  |= BIT0;
 }
 
@@ -238,6 +238,7 @@ void switch_protect(unsigned char state)
 		//TACTL = MC_0;
 		INFRAR_KEY_IE  |= INFRAR_KEY_N_PIN;
 		INFRAR_POWER_OUT &= ~INFRAR_POWER_N_PIN;
+		LED_OUT |= LED_N_PIN;
 	} else {
 		/*switch to protect off*/
 		//timer on
@@ -245,6 +246,7 @@ void switch_protect(unsigned char state)
 		TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
 		INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
+		LED_OUT &= ~LED_N_PIN;
 	}				
 }
 /*	
@@ -328,7 +330,7 @@ void handle_cc1101_resp()
 	{
 		TACTL = MC_0;
 	}
-	if (last_sub_cmd == 0)
+	if (last_sub_cmd == 0 && g_state == STATE_PROTECT_ON)
 		radio_sleep();
 }
 void handle_timer()
@@ -389,7 +391,7 @@ void task()
 	INFRAR_POWER_SEL &= ~INFRAR_POWER_N_PIN;
 	INFRAR_POWER_DIR |= INFRAR_POWER_N_PIN;
 	INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
-	TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
+	TACTL = TASSEL_1 + MC_2 + TAIE;
 	radio_init();
 	handle_cc1101_addr(NULL, 0);
 	while (1) {
@@ -412,6 +414,7 @@ void task()
 			trx8BitRegAccess(RADIO_WRITE_ACCESS, PKTCTRL1, &pkt, 1);
 			g_state = STATE_ASK_CC1101_ADDR;
 			b_protection_state =0;
+			switch_protect(0);
 			handle_cc1101_addr(NULL,0);
 			CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
 			CODE_KEY_IE |= CODE_KEY_N_PIN;
@@ -431,8 +434,6 @@ void task()
 			//add int count then make decision
 			if (b_protection_state)
 			handle_cc1101_cmd(CMD_ALARM, 0x02);
-			LED_OUT ^= LED_N_PIN;
-			//__delay_cycles(100000);
 			INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 			INFRAR_KEY_IE |= INFRAR_KEY_N_PIN;
 		}
