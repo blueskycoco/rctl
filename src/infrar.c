@@ -71,7 +71,7 @@
 #define KEY_S1		0x04
 #define KEY_TIMER 	0x08
 #define KEY_WIRELESS	0x10
-#define KEY_LOWPOWER	0x20
+//#define KEY_LOWPOWER	0x20
 
 #define STATE_ASK_CC1101_ADDR		0
 #define STATE_CONFIRM_CC1101_ADDR	1
@@ -133,11 +133,11 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 		__bic_SR_register_on_exit(LPM3_bits);
 	}
 }
-void __attribute__ ((interrupt(COMPARATORA_VECTOR))) Comp_ISR (void)
-{
-	key |= KEY_LOWPOWER;
- __bic_SR_register_on_exit(LPM3_bits);       
-}
+//void __attribute__ ((interrupt(COMPARATORA_VECTOR))) Comp_ISR (void)
+//{
+//	key |= KEY_LOWPOWER;
+// __bic_SR_register_on_exit(LPM3_bits);       
+//}
 
 void ca_ctl(int on)
 {
@@ -234,8 +234,8 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	cmd[ofs++] = (crc) & 0xff;
 	cmd[4] = ofs-5; 
 	radio_send(cmd, ofs);
-	if (TACTL == MC_0)
-		TACTL = TASSEL_1 + MC_2 + TAIE;
+	//if (TACTL == MC_0)
+	//	TACTL = TASSEL_1 + MC_2 + TAIE;
 	P2IE  |= BIT0;
 }
 
@@ -254,7 +254,7 @@ void switch_protect(unsigned char state)
 		/*switch to protect off*/
 		//timer on
 		//infrar int off
-		TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
+		//TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
 		INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
 		LED_OUT &= ~LED_N_PIN;
@@ -338,10 +338,10 @@ void handle_cc1101_resp()
 			break;
 	}
 
-	if (last_sub_cmd == 0 && b_protection_state)
-	{
-		TACTL = MC_0;
-	}
+//	if (last_sub_cmd == 0 && b_protection_state)
+//	{
+//		TACTL = MC_0;
+//	}
 	if (last_sub_cmd == 0 && g_state == STATE_PROTECT_ON)
 		radio_sleep();
 }
@@ -367,6 +367,10 @@ void handle_timer()
 		if (last_sub_cmd & 0x08 || !b_protection_state)
 			handle_cc1101_cmd(CMD_CUR_STATUS,0x00);
 	}
+
+	//unsigned short bat = read_adc();
+	//if (bat < MIN_BAT)
+	//	handle_cc1101_cmd(CMD_LOW_POWER,0x00);
 }
 void task()
 {		
@@ -440,11 +444,11 @@ void task()
 			S1_KEY_IE  |= S1_KEY_N_PIN;
 		}
 
-		if (key & KEY_LOWPOWER) {
-			key &= ~KEY_LOWPOWER;
-			/*send s1 alarm to stm32*/
-			handle_cc1101_cmd(CMD_LOW_POWER, 0x01);
-		}
+		//if (key & KEY_LOWPOWER) {
+		//	key &= ~KEY_LOWPOWER;
+		//	/*send s1 alarm to stm32*/
+		//	handle_cc1101_cmd(CMD_LOW_POWER, 0x01);
+		//}
 
 		if (key & KEY_INFRAR) {
 			key &= ~KEY_INFRAR;
