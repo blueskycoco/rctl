@@ -26,16 +26,9 @@
 #define CMD_CUR_STATUS	0x0010
 #define CMD_CUR_STATUS_ACK	0x0011
 
-#define CMD_LOW_POWER	0x0C
 #define DEVICE_TYPE		0x02
-#define	CMD_PROTECT_ON	0x02
-#define	CMD_PROTECT_OFF	0x04
-#define	CMD_ALARM		0x06
-#define	CMD_MUTE		0x0e
 #define MSG_HEAD0		0x6c
 #define MSG_HEAD1		0xaa
-#define PACKAGE_LEN		16
-#define DATA_LEN		9
 #define LED_SEL         P1SEL
 #define LED_OUT         P1OUT
 #define LED_DIR         P1DIR
@@ -78,6 +71,7 @@
 #define KEY_S1		0x04
 #define KEY_TIMER 	0x08
 #define KEY_WIRELESS	0x10
+#define KEY_LOWPOWER	0x20
 
 #define STATE_ASK_CC1101_ADDR		0
 #define STATE_CONFIRM_CC1101_ADDR	1
@@ -139,6 +133,21 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 		__bic_SR_register_on_exit(LPM3_bits);
 	}
 }
+void __attribute__ ((interrupt(COMPARATORA_VECTOR))) Comp_ISR (void)
+{
+	key |= KEY_LOWPOWER;
+ __bic_SR_register_on_exit(LPM3_bits);       
+}
+
+void ca_ctl(int on)
+{
+	CACTL2 = P2CA0;
+	if (on)
+		CACTL1 = CAREF1+ CAREF0 + CAON + CAIE + CARSEL;
+	else
+		CACTL1 = 0;
+}
+
 /*
   	msp430 -> stm32 
 	0x01 cc1101_addr 0x6c 0xaa data_len stm32_id msp430_id cmd_type sub_cmd_type device_type battery crc
@@ -216,6 +225,8 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	
 	cmd[ofs++] = DEVICE_TYPE;
 	unsigned short bat = read_adc();
+	//if (b_protection_state)
+	//	ca_ctl(1);
 	cmd[ofs++] = (bat >> 8) & 0xff;
 	cmd[ofs++] = (bat) & 0xff;	
 	unsigned short crc = CRC(cmd, ofs);
@@ -247,6 +258,7 @@ void switch_protect(unsigned char state)
 		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
 		INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
 		LED_OUT &= ~LED_N_PIN;
+		//ca_ctl(0);
 	}				
 }
 /*	
@@ -426,6 +438,12 @@ void task()
 			handle_cc1101_cmd(CMD_ALARM, 0x01);
 			S1_KEY_IFG &= ~S1_KEY_N_PIN;
 			S1_KEY_IE  |= S1_KEY_N_PIN;
+		}
+
+		if (key & KEY_LOWPOWER) {
+			key &= ~KEY_LOWPOWER;
+			/*send s1 alarm to stm32*/
+			handle_cc1101_cmd(CMD_LOW_POWER, 0x01);
 		}
 
 		if (key & KEY_INFRAR) {
