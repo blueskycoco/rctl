@@ -325,12 +325,12 @@ unsigned short read_adc()
 {
 	static volatile int adc[10] = {0};
 	int total_adc = 0,i = 0;
-	ADC10CTL0 &= ~ENC;
-	ADC10CTL1 = CONSEQ_2 + INCH_11;						// Repeat single channel, A0
-	ADC10CTL0 = ADC10SHT_0 +MSC + ADC10ON + ADC10IE + REFON + SREF0;	// Sample & Hold Time + ADC10 ON + Interrupt Enable
+	//ADC10CTL0 &= ~ENC;
+	ADC10CTL1 = CONSEQ_2 + INCH_0;						// Repeat single channel, A0
+	ADC10CTL0 = ADC10SHT_2 +MSC + ADC10ON + ADC10IE;	// Sample & Hold Time + ADC10 ON + Interrupt Enable
 	ADC10DTC1 = 0x0A;									// 10 conversions
 	ADC10AE0 |= 0x01;									// P1.0 ADC option select
-	//ADC10CTL0 &= ~ENC;				// Disable Conversion
+	ADC10CTL0 &= ~ENC;				// Disable Conversion
     while (ADC10CTL1 & BUSY);		// Wait if ADC10 busy
     ADC10SA = (int)adc;				// Transfers data to next array (DTC auto increments address)
     ADC10CTL0 |= ENC + ADC10SC;		// Enable Conversion and conversion start
