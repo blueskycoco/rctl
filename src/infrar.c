@@ -82,9 +82,12 @@ void task()
 		if (key&KEY_WIRELESS) {
 			key &= ~KEY_WIRELESS;
 			WDTCTL = WDT_ARST_1000;	
+			len = 20;
 			radio_read(cmd1,&len);
-			if (memcmp(cmd,cmd1,10) !=0 || len != 10)
-				LED_OUT |= LED_N_PIN;		
+//			if (memcmp(cmd,cmd1,10) !=0 || len != 10)
+//				LED_OUT |= LED_N_PIN;		
+//			else
+//				LED_OUT &= ~LED_N_PIN;
 			radio_sleep();
 			P2IFG &= ~BIT0;
 			i=i+1;
