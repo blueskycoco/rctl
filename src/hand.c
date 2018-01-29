@@ -19,8 +19,8 @@
 #define	CMD_MUTE		0x0e
 #define MSG_HEAD0		0x6c
 #define MSG_HEAD1		0xaa
-#define PACKAGE_LEN		14
-#define DATA_LEN		9
+#define PACKAGE_LEN		21
+#define DATA_LEN		16
 #define LED_SEL         P2SEL
 #define LED_OUT         P2OUT
 #define LED_DIR         P2DIR
@@ -37,6 +37,7 @@
 #define POWER_N_PIN		BIT4
 volatile unsigned int cnt = 0;
 volatile unsigned int flag = 1;
+volatile unsigned int g_i =0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
 	switch( TA0IV )	
@@ -45,7 +46,10 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 		case  4:  break;
 		case 10:  
 			{
-				__bic_SR_register_on_exit(LPM3_bits);
+				g_i++;
+				if (g_i> 30) {					
+				__bic_SR_register_on_exit(LPM0_bits);
+				}
 			}
 		break;
 	}
@@ -55,7 +59,7 @@ void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 	if (P1IFG & KEY_N_PIN1 )
 	{
 		P1IFG &= ~KEY_N_PIN1;
-		__bic_SR_register_on_exit(LPM3_bits);
+		__bic_SR_register_on_exit(LPM0_bits);
 	}	
 }	
 
@@ -64,7 +68,7 @@ void task()
 	unsigned char key = 0x00;
 	unsigned char cmd[PACKAGE_LEN] = {0x00};
 	unsigned short cmd_len = PACKAGE_LEN;
-	int i=0,j=0;
+	int i=0;
 	POWER_SEL &= ~POWER_N_PIN;
 	POWER_DIR |= POWER_N_PIN;
 	POWER_OUT |= POWER_N_PIN;
@@ -99,35 +103,38 @@ void task()
 		P1IES &= ~KEY_N_PIN1;
 		P1IFG &= ~KEY_N_PIN1;
 		P1IE  |= KEY_N_PIN1;
-	
-		TACTL = TASSEL_1 + MC_2 + TAIE;
-		__bis_SR_register(LPM3_bits + GIE);
+		CCR0 = 16384;
+		TACTL = TASSEL_2 + MC_1 + TAIE;
+		__bis_SR_register(LPM0_bits + GIE);
 		if (!(KEY_IN & KEY_N_PIN1))
 			key = 0x08;
 		TACTL = MC_0;
 	}
 
-	cmd[0] = MSG_HEAD0;cmd[1] = MSG_HEAD1;
-	cmd[2] = DATA_LEN; cmd[3] = 0x00;
-	cmd[5] = DEVICE_TYPE;
-	cmd[6] = ((long)ID_CODE >> 24) & 0xff;
-	cmd[7] = ((long)ID_CODE >> 16) & 0xff;
-	cmd[8] = ((long)ID_CODE >> 8) & 0xff;
-	cmd[9] = ((long)ID_CODE >> 0) & 0xff;
+	cmd[0] = 0x01; cmd[1] = 0x00;
+	cmd[2] = MSG_HEAD0;cmd[3] = MSG_HEAD1;
+	cmd[4] = 16; cmd[5] = 0x00;cmd[6] = 0x00;cmd[7] = 0x00;cmd[8] = 0x00;
+	cmd[9] = ((long)ID_CODE >> 24) & 0xff;
+	cmd[10] = ((long)ID_CODE >> 16) & 0xff;
+	cmd[11] = ((long)ID_CODE >> 8) & 0xff;
+	cmd[12] = ((long)ID_CODE >> 0) & 0xff;
+	cmd[13] = 0;
+	cmd[15] = 0x00;
+	cmd[16] = DEVICE_TYPE;
 	unsigned short bat = read_adc();
-	cmd[10] = (bat >> 8) & 0xff;
-	cmd[11] = (bat) & 0xff;
+	cmd[17] = (bat >> 8) & 0xff;
+	cmd[18] = (bat) & 0xff;
 	if (key == 0x01)
-		cmd[4] = CMD_PROTECT_ON;
+		cmd[14] = CMD_PROTECT_ON;
 	else if (key == 0x02)
-		cmd[4] = CMD_PROTECT_OFF;
+		cmd[14] = CMD_PROTECT_OFF;
 	else if (key == 0x04)
-		cmd[4] = CMD_ALARM;
+		cmd[14] = CMD_ALARM;
 	else
-		cmd[4] = CMD_MUTE;
+		cmd[14] = CMD_MUTE;
 	unsigned short crc = CRC(cmd, PACKAGE_LEN - 2);
-	cmd[PACKAGE_LEN - 2] = (crc >> 8) & 0xff;
-	cmd[PACKAGE_LEN - 1] = (crc) & 0xff;
+	cmd[19] = (crc >> 8) & 0xff;
+	cmd[20] = (crc) & 0xff;
 	LED_OUT |= LED_N_PIN;
 	//radio_init();
 	for (i=0;i<3;i++) {

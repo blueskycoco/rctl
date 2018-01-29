@@ -1,4 +1,4 @@
-MCU=msp430g2553
+MCU=msp430g2452
 
 SOURCES :=
 CFLAGS= -mmcu=${MCU} -g -O2 -Wall -Wunused
