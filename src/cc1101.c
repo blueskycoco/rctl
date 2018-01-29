@@ -165,7 +165,7 @@ static void Mrfi_RxModeOn(void)
 
   trxSpiCmdStrobe( RF_SRX );
 
- //RF_GDO_PxIE	|= RF_GDO_PIN;
+  RF_GDO_PxIE	|= RF_GDO_PIN;
 }
 
 void cca()
@@ -242,7 +242,7 @@ int radio_read(unsigned char *buf, unsigned short *buf_len) {
 	unsigned char status[2];
 	unsigned char pktLen;
 	//trxSpiCmdStrobe(RF_SRX);
-	while(!(RF_GDO_IN & RF_GDO_PIN));
+	//while(!(RF_GDO_IN & RF_GDO_PIN));
 	while((RF_GDO_IN & RF_GDO_PIN));
 
 	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXBYTES, &pktLen, 1);

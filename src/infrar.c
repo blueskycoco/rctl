@@ -13,6 +13,10 @@
 #define LED_N_PIN       BIT3
 volatile int i=0;
 volatile uint8 softDog = 0;
+volatile unsigned char key = 0x0;
+#define KEY_TIMER 	0x08
+#define KEY_WIRELESS	0x10
+
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
 	switch( TA0IV )	
@@ -21,17 +25,28 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 		case  4:  break;
 		case 10:  
 			{
-				if (++softDog < 20)
-					WDTCTL = WDT_ARST_1000;				
-				i++;
-				if (i == 10) {
-				i=0;
+				//if (++softDog < 20)
+				//	WDTCTL = WDT_ARST_1000;				
+				//i++;
+				//if (i == 10) {
+				//i=0;
+				key |= KEY_TIMER;
 				__bic_SR_register_on_exit(LPM3_bits);			
-				}
+				//}
 			}
 		break;
 	}
 }
+void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
+{  	
+	if (P2IFG & BIT0 )
+	{
+		P2IE  &= ~BIT0;
+		key |= KEY_WIRELESS;
+		__bic_SR_register_on_exit(LPM3_bits);
+	}
+}
+
 void task()
 {		
 	int i=0;
@@ -49,26 +64,33 @@ void task()
 	LED_OUT &= ~LED_N_PIN;
 
 	radio_init();
-	CCR0 = 8192;
-	TACTL = TASSEL_1 + MC_1 + TAIE + ID0;
+	//CCR0 = 8192;
+	TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 	while (1) {
 		__bis_SR_register(LPM3_bits + GIE);
-		//LED_OUT ^= LED_N_PIN;
-		if (i==10)
-		i=0;
-		len = 10;
-		/*memset(cmd+2,0x30+i,len);
-		cmd[0] = DEST_ADDR;
-		cmd[1] = SRC_ADDR;
-		len += 2;*/
-		memset(cmd,0x30+i,len);
-		radio_send(cmd,len);
-		radio_read(cmd1,&len);
-		if (memcmp(cmd,cmd1,10) !=0 || len != 10)
-			LED_OUT |= LED_N_PIN;		
-		radio_sleep();
+		if (key&KEY_TIMER) {
+			if (i==10)
+			i=0;
+			len = 10;
+			memset(cmd,0x30+i,len);
+			key &= ~KEY_TIMER;
+			WDTCTL = WDT_ARST_1000;	
+			radio_send(cmd,len);
+			WDTCTL = WDTPW | WDTHOLD;
+		}
+
+		if (key&KEY_WIRELESS) {
+			key &= ~KEY_WIRELESS;
+			WDTCTL = WDT_ARST_1000;	
+			radio_read(cmd1,&len);
+			if (memcmp(cmd,cmd1,10) !=0 || len != 10)
+				LED_OUT |= LED_N_PIN;		
+			radio_sleep();
+			P2IFG &= ~BIT0;
+			i=i+1;
+			WDTCTL = WDTPW | WDTHOLD;
+		}
 		softDog = 0;
-		i=i+1;
 	}
 	return ;
 }
