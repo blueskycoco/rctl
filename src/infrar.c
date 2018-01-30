@@ -86,6 +86,8 @@ unsigned char stm32_id[STM32_CODE_LEN] = {0};
 unsigned char zero_id[STM32_CODE_LEN] = {0};
 unsigned char cc1101_addr = 0;
 #define STM32_ADDR	0x01
+
+int test_cnt = 0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
 	switch( TA0IV )	
@@ -94,8 +96,13 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 		case  4:  break;
 		case 10:  
 			{
+					//test_cnt++;
+					//if (test_cnt == 30) {
+					//	test_cnt = 0;
 					key |= KEY_TIMER;
+					//__bic_SR_register_on_exit(LPM0_bits);
 					__bic_SR_register_on_exit(LPM3_bits);
+					//}
 			}
 		break;
 	}
@@ -181,11 +188,11 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 	}
 	unsigned short bat = read_adc();
 	cmd[ofs++] = (bat >> 8) & 0xff;
-	cmd[ofs++] = (bat) & 0xff;	
+	cmd[ofs++] = (bat) & 0xff;
+	cmd[4] = ofs-3; 
 	unsigned short crc = CRC(cmd, ofs);
 	cmd[ofs++] = (crc >> 8) & 0xff;
 	cmd[ofs++] = (crc) & 0xff;
-	cmd[4] = ofs-5; 
 	radio_send(cmd, ofs);
 	if (id == NULL) {
 		P2REN &= ~BIT0;
@@ -229,10 +236,10 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	//	ca_ctl(1);
 	cmd[ofs++] = (bat >> 8) & 0xff;
 	cmd[ofs++] = (bat) & 0xff;	
+	cmd[4] = ofs-3; 
 	unsigned short crc = CRC(cmd, ofs);
 	cmd[ofs++] = (crc >> 8) & 0xff;
 	cmd[ofs++] = (crc) & 0xff;
-	cmd[4] = ofs-5; 
 	radio_send(cmd, ofs);
 	//if (TACTL == MC_0)
 	//	TACTL = TASSEL_1 + MC_2 + TAIE;
@@ -288,7 +295,6 @@ void handle_cc1101_resp()
 			if (memcmp(stm32_id, resp+5, STM32_CODE_LEN) !=0 && g_state !=STATE_ASK_CC1101_ADDR)
 				return ;
 		}
-	}
 	cmd_type = resp[15]<<8 | resp[16];
 	switch (cmd_type) {
 		case CMD_REG_CODE_ACK:	
@@ -336,6 +342,8 @@ void handle_cc1101_resp()
 			break;
 		default:
 			break;
+	}
+
 	}
 
 //	if (last_sub_cmd == 0 && b_protection_state)
@@ -407,10 +415,13 @@ void task()
 	INFRAR_POWER_SEL &= ~INFRAR_POWER_N_PIN;
 	INFRAR_POWER_DIR |= INFRAR_POWER_N_PIN;
 	INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
-	TACTL = TASSEL_1 + MC_2 + TAIE;
+	//CCR0 = 16384;
+	//TACTL = TASSEL_2 + MC_1 + TAIE;
+	TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 	radio_init();
 	handle_cc1101_addr(NULL, 0);
 	while (1) {
+		//__bis_SR_register(LPM0_bits + GIE);
 		__bis_SR_register(LPM3_bits + GIE);
 		_DINT();
 		NOP();
@@ -439,7 +450,7 @@ void task()
 		if (key & KEY_S1) {
 			key &= ~KEY_S1;
 			/*send s1 alarm to stm32*/
-			handle_cc1101_cmd(CMD_ALARM, 0x01);
+			handle_cc1101_cmd(CMD_ALARM, 0x02);
 			S1_KEY_IFG &= ~S1_KEY_N_PIN;
 			S1_KEY_IE  |= S1_KEY_N_PIN;
 		}
@@ -455,7 +466,7 @@ void task()
 			/*send infrar alarm to stm32*/
 			//add int count then make decision
 			if (b_protection_state)
-			handle_cc1101_cmd(CMD_ALARM, 0x02);
+			handle_cc1101_cmd(CMD_ALARM, 0x01);
 			INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 			INFRAR_KEY_IE |= INFRAR_KEY_N_PIN;
 		}
