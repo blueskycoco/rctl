@@ -19,7 +19,7 @@
 #define	CMD_MUTE		0x0e
 #define MSG_HEAD0		0x6c
 #define MSG_HEAD1		0xaa
-#define PACKAGE_LEN		21
+#define PACKAGE_LEN		23
 #define DATA_LEN		16
 #define LED_SEL         P2SEL
 #define LED_OUT         P2OUT
@@ -113,28 +113,28 @@ void task()
 
 	cmd[0] = 0x01; cmd[1] = 0x00;
 	cmd[2] = MSG_HEAD0;cmd[3] = MSG_HEAD1;
-	cmd[4] = 16; cmd[5] = 0x00;cmd[6] = 0x00;cmd[7] = 0x00;cmd[8] = 0x00;
-	cmd[9] = ((long)ID_CODE >> 24) & 0xff;
-	cmd[10] = ((long)ID_CODE >> 16) & 0xff;
-	cmd[11] = ((long)ID_CODE >> 8) & 0xff;
-	cmd[12] = ((long)ID_CODE >> 0) & 0xff;
-	cmd[13] = 0;
-	cmd[15] = 0x00;
-	cmd[16] = DEVICE_TYPE;
+	cmd[4] = 18; cmd[5] = 0x00;cmd[6] = 0x00;cmd[7] = 0x00;cmd[8] = 0x00;cmd[9] = 0x00;cmd[10] = 0x00;
+	cmd[11] = ((long)ID_CODE >> 24) & 0xff;
+	cmd[12] = ((long)ID_CODE >> 16) & 0xff;
+	cmd[13] = ((long)ID_CODE >> 8) & 0xff;
+	cmd[14] = ((long)ID_CODE >> 0) & 0xff;
+	cmd[15] = 0;
+	cmd[17] = 0x00;
+	cmd[18] = DEVICE_TYPE;
 	unsigned short bat = read_adc();
-	cmd[17] = (bat >> 8) & 0xff;
-	cmd[18] = (bat) & 0xff;
+	cmd[19] = (bat >> 8) & 0xff;
+	cmd[20] = (bat) & 0xff;
 	if (key == 0x01)
-		cmd[14] = CMD_PROTECT_ON;
+		cmd[16] = CMD_PROTECT_ON;
 	else if (key == 0x02)
-		cmd[14] = CMD_PROTECT_OFF;
+		cmd[16] = CMD_ALARM;
 	else if (key == 0x04)
-		cmd[14] = CMD_ALARM;
+		cmd[16] = CMD_PROTECT_OFF;
 	else
-		cmd[14] = CMD_MUTE;
+		cmd[16] = CMD_MUTE;
 	unsigned short crc = CRC(cmd, PACKAGE_LEN - 2);
-	cmd[19] = (crc >> 8) & 0xff;
-	cmd[20] = (crc) & 0xff;
+	cmd[21] = (crc >> 8) & 0xff;
+	cmd[22] = (crc) & 0xff;
 	LED_OUT |= LED_N_PIN;
 	//radio_init();
 	for (i=0;i<3;i++) {
