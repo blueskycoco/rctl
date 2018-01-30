@@ -386,6 +386,13 @@ void task()
 	LED_SEL &= ~LED_N_PIN;
 	LED_DIR |= LED_N_PIN;
 	LED_OUT &= ~LED_N_PIN;
+	LED_OUT |= LED_N_PIN;
+	__delay_cycles(500000);
+	LED_OUT &= ~LED_N_PIN;
+	__delay_cycles(500000);
+	LED_OUT |= LED_N_PIN;
+	__delay_cycles(500000);
+	LED_OUT &= ~LED_N_PIN;
 
 	S1_KEY_SEL &= ~S1_KEY_N_PIN;
 	S1_KEY_DIR &= ~S1_KEY_N_PIN;
