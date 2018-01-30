@@ -81,7 +81,7 @@ unsigned char stm32_id[STM32_CODE_LEN] = {0};
 unsigned char zero_id[STM32_CODE_LEN] = {0};
 unsigned char cc1101_addr = 0;
 #define STM32_ADDR	0x01
-
+#define USE_SMCLK 1
 int test_cnt = 0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
@@ -91,13 +91,17 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 		case  4:  break;
 		case 10:  
 			{
-					//test_cnt++;
-					//if (test_cnt == 30) {
-					//	test_cnt = 0;
+					#if USE_SMCLK
+					test_cnt++;
+					if (test_cnt == 300) {
+						test_cnt = 0;
 					key |= KEY_TIMER;
-					//__bic_SR_register_on_exit(LPM0_bits);
+					__bic_SR_register_on_exit(LPM0_bits);
+					}
+					#else
+					key |= KEY_TIMER;
 					__bic_SR_register_on_exit(LPM3_bits);
-					//}
+					#endif
 			}
 		break;
 	}
@@ -120,11 +124,14 @@ void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 	{
 		key |= KEY_DOOR;
 		DOOR_KEY_IE  &= ~DOOR_KEY_N_PIN;
-		__bic_SR_register_on_exit(LPM3_bits);
 	}
 
 	if ((key & KEY_CODE) || (key & KEY_S1) || (key & KEY_DOOR))
+		#if USE_SMCLK
+		__bic_SR_register_on_exit(LPM0_bits);
+		#else
 		__bic_SR_register_on_exit(LPM3_bits);
+		#endif
 }	
 void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 {  
@@ -133,7 +140,11 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 	{
 		key |= KEY_WIRELESS;
 		P2IE  &= ~BIT0;
+		#if USE_SMCLK
+		__bic_SR_register_on_exit(LPM0_bits);
+		#else
 		__bic_SR_register_on_exit(LPM3_bits);
+		#endif
 	}
 }
 //void __attribute__ ((interrupt(COMPARATORA_VECTOR))) Comp_ISR (void)
@@ -418,14 +429,20 @@ void task()
 	//DOOR_POWER_SEL &= ~DOOR_POWER_N_PIN;
 	//DOOR_POWER_DIR |= DOOR_POWER_N_PIN;
 	//DOOR_POWER_OUT |= DOOR_POWER_N_PIN;
-	//CCR0 = 16384;
-	//TACTL = TASSEL_2 + MC_1 + TAIE;
+	#if USE_SMCLK
+	CCR0 = 32768;
+	TACTL = TASSEL_2 + MC_1 + TAIE;
+	#else
 	TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
+	#endif
 	radio_init();
 	handle_cc1101_addr(NULL, 0);
 	while (1) {
-		//__bis_SR_register(LPM0_bits + GIE);
+		#if USE_SMCLK
+		__bis_SR_register(LPM0_bits + GIE);
+		#else
 		__bis_SR_register(LPM3_bits + GIE);
+		#endif
 		_DINT();
 		NOP();
 		if (key & KEY_TIMER) {
