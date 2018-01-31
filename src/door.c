@@ -123,7 +123,7 @@ void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 	if (DOOR_KEY_IFG & DOOR_KEY_N_PIN )
 	{
 		key |= KEY_DOOR;
-		DOOR_KEY_IE  &= ~DOOR_KEY_N_PIN;
+		//DOOR_KEY_IE  &= ~DOOR_KEY_N_PIN;
 	}
 
 	if ((key & KEY_CODE) || (key & KEY_S1) || (key & KEY_DOOR))
@@ -434,7 +434,7 @@ void task()
 		__bis_SR_register(LPM3_bits + GIE);
 		#endif
 		_DINT();
-		NOP();
+		//NOP();
 		if (key & KEY_TIMER) {
 			key &= ~KEY_TIMER;
 			handle_timer();
@@ -476,7 +476,7 @@ void task()
 			if (b_protection_state)
 			handle_cc1101_cmd(CMD_ALARM, 0x01);
 			DOOR_KEY_IFG &= ~DOOR_KEY_N_PIN;
-			DOOR_KEY_IE |= DOOR_KEY_N_PIN;
+			//DOOR_KEY_IE |= DOOR_KEY_N_PIN;
 		}
 
 		if (key & KEY_WIRELESS) {

@@ -137,7 +137,7 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 	if (INFRAR_KEY_IFG & INFRAR_KEY_N_PIN )
 	{
 		key |= KEY_INFRAR;
-		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
+		//INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
 		#if USE_SMCLK
 		__bic_SR_register_on_exit(LPM0_bits);
 		#else
@@ -447,7 +447,7 @@ void task()
 		__bis_SR_register(LPM3_bits + GIE);
 		#endif
 		_DINT();
-		NOP();
+		//NOP();
 		if (key & KEY_TIMER) {
 			key &= ~KEY_TIMER;
 			handle_timer();
@@ -491,7 +491,7 @@ void task()
 			if (b_protection_state)
 			handle_cc1101_cmd(CMD_ALARM, 0x01);
 			INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
-			INFRAR_KEY_IE |= INFRAR_KEY_N_PIN;
+			//INFRAR_KEY_IE |= INFRAR_KEY_N_PIN;
 		}
 
 		if (key & KEY_WIRELESS) {
