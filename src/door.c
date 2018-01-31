@@ -81,7 +81,7 @@ unsigned char stm32_id[STM32_CODE_LEN] = {0};
 unsigned char zero_id[STM32_CODE_LEN] = {0};
 unsigned char cc1101_addr = 0;
 #define STM32_ADDR	0x01
-#define USE_SMCLK 1
+#define USE_SMCLK 0
 int test_cnt = 0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
@@ -93,7 +93,7 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 			{
 					#if USE_SMCLK
 					test_cnt++;
-					if (test_cnt == 300) {
+					if (test_cnt == 150) {
 						test_cnt = 0;
 					key |= KEY_TIMER;
 					__bic_SR_register_on_exit(LPM0_bits);
@@ -397,13 +397,6 @@ void task()
 	LED_SEL &= ~LED_N_PIN;
 	LED_DIR |= LED_N_PIN;
 	LED_OUT &= ~LED_N_PIN;
-	LED_OUT |= LED_N_PIN;
-	__delay_cycles(500000);
-	LED_OUT &= ~LED_N_PIN;
-	__delay_cycles(500000);
-	LED_OUT |= LED_N_PIN;
-	__delay_cycles(500000);
-	LED_OUT &= ~LED_N_PIN;
 
 	S1_KEY_SEL &= ~S1_KEY_N_PIN;
 	S1_KEY_DIR &= ~S1_KEY_N_PIN;
@@ -426,9 +419,6 @@ void task()
 	DOOR_KEY_IES |= DOOR_KEY_N_PIN;
 	DOOR_KEY_IFG &= ~DOOR_KEY_N_PIN;
 	
-	//DOOR_POWER_SEL &= ~DOOR_POWER_N_PIN;
-	//DOOR_POWER_DIR |= DOOR_POWER_N_PIN;
-	//DOOR_POWER_OUT |= DOOR_POWER_N_PIN;
 	#if USE_SMCLK
 	CCR0 = 32768;
 	TACTL = TASSEL_2 + MC_1 + TAIE;
@@ -448,8 +438,6 @@ void task()
 		if (key & KEY_TIMER) {
 			key &= ~KEY_TIMER;
 			handle_timer();
-			//radio_send(cmd,len);
-			//radio_sleep();
 		}
 
 		if (key & KEY_CODE) {
@@ -496,7 +484,7 @@ void task()
 			/*new data come from stm32*/
 			//P2IE  &= ~BIT0;
 			handle_cc1101_resp();
-			DOOR_KEY_IFG &= ~BIT0;
+			P2IFG &= ~BIT0;
 			P2IE  |= BIT0;
 		}
 		NOP();
