@@ -123,7 +123,8 @@ void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 	if (DOOR_KEY_IFG & DOOR_KEY_N_PIN )
 	{
 		key |= KEY_DOOR;
-		//DOOR_KEY_IE  &= ~DOOR_KEY_N_PIN;
+		DOOR_KEY_IE  &= ~DOOR_KEY_N_PIN;
+		DOOR_KEY_IFG &= ~DOOR_KEY_N_PIN;
 	}
 
 	if ((key & KEY_CODE) || (key & KEY_S1) || (key & KEY_DOOR))
@@ -261,6 +262,7 @@ void switch_protect(unsigned char state)
 		//timer off
 		//infrar int on
 		//TACTL = MC_0;
+		DOOR_KEY_IFG &= ~DOOR_KEY_N_PIN;
 		DOOR_KEY_IE  |= DOOR_KEY_N_PIN;
 		//DOOR_POWER_OUT &= ~DOOR_POWER_N_PIN;
 		LED_OUT |= LED_N_PIN;
@@ -270,6 +272,7 @@ void switch_protect(unsigned char state)
 		//infrar int off
 		//TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 		DOOR_KEY_IE  &= ~DOOR_KEY_N_PIN;
+		DOOR_KEY_IFG &= ~DOOR_KEY_N_PIN;
 		//DOOR_POWER_OUT |= DOOR_POWER_N_PIN;
 		LED_OUT &= ~LED_N_PIN;
 		//ca_ctl(0);
@@ -476,7 +479,7 @@ void task()
 			if (b_protection_state)
 			handle_cc1101_cmd(CMD_ALARM, 0x01);
 			DOOR_KEY_IFG &= ~DOOR_KEY_N_PIN;
-			//DOOR_KEY_IE |= DOOR_KEY_N_PIN;
+			DOOR_KEY_IE |= DOOR_KEY_N_PIN;
 		}
 
 		if (key & KEY_WIRELESS) {

@@ -137,7 +137,8 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 	if (INFRAR_KEY_IFG & INFRAR_KEY_N_PIN )
 	{
 		key |= KEY_INFRAR;
-		//INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
+		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
+		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 		#if USE_SMCLK
 		__bic_SR_register_on_exit(LPM0_bits);
 		#else
@@ -270,6 +271,7 @@ void switch_protect(unsigned char state)
 		//timer off
 		//infrar int on
 		//TACTL = MC_0;
+		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 		INFRAR_KEY_IE  |= INFRAR_KEY_N_PIN;
 		INFRAR_POWER_OUT &= ~INFRAR_POWER_N_PIN;
 		LED_OUT |= LED_N_PIN;
@@ -279,6 +281,7 @@ void switch_protect(unsigned char state)
 		//infrar int off
 		//TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
+		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 		INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
 		LED_OUT &= ~LED_N_PIN;
 		//ca_ctl(0);
@@ -491,7 +494,7 @@ void task()
 			if (b_protection_state)
 			handle_cc1101_cmd(CMD_ALARM, 0x01);
 			INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
-			//INFRAR_KEY_IE |= INFRAR_KEY_N_PIN;
+			INFRAR_KEY_IE |= INFRAR_KEY_N_PIN;
 		}
 
 		if (key & KEY_WIRELESS) {
