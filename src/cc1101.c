@@ -170,7 +170,7 @@ static void Mrfi_RxModeOn(void)
 
 void cca()
 {
-	uint8_t ccaRetries = 400;
+	uint32_t ccaRetries = 400;
 	uint8_t papd = 0x1b;
 	uint8_t sync = 0x06;
 	for (;;)
