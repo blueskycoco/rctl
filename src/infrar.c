@@ -14,7 +14,7 @@
 #define DEVICE_MODE		0xD1
 #define ID_CODE_LEN		4
 #define STM32_CODE_LEN	6
-#define ID_CODE			0x00000001
+#define ID_CODE			0x00000111
 #define CMD_REG_CODE		0x0000
 #define CMD_REG_CODE_ACK	0x0001
 #define CMD_CONFIRM_CODE	0x0014
@@ -138,7 +138,6 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 	{
 		key |= KEY_INFRAR;
 		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
-		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 		#if USE_SMCLK
 		__bic_SR_register_on_exit(LPM0_bits);
 		#else
@@ -271,7 +270,6 @@ void switch_protect(unsigned char state)
 		//timer off
 		//infrar int on
 		//TACTL = MC_0;
-		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 		INFRAR_KEY_IE  |= INFRAR_KEY_N_PIN;
 		INFRAR_POWER_OUT &= ~INFRAR_POWER_N_PIN;
 		LED_OUT |= LED_N_PIN;
@@ -281,7 +279,6 @@ void switch_protect(unsigned char state)
 		//infrar int off
 		//TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
-		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 		INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
 		LED_OUT &= ~LED_N_PIN;
 		//ca_ctl(0);
@@ -409,6 +406,14 @@ void task()
 	LED_SEL &= ~LED_N_PIN;
 	LED_DIR |= LED_N_PIN;
 	LED_OUT &= ~LED_N_PIN;
+	
+	LED_OUT |= LED_N_PIN;
+	__delay_cycles(500000);
+	 LED_OUT &= ~LED_N_PIN;
+	__delay_cycles(500000);
+	LED_OUT |= LED_N_PIN;
+	__delay_cycles(500000);
+	LED_OUT &= ~LED_N_PIN;
 
 	S1_KEY_SEL &= ~S1_KEY_N_PIN;
 	S1_KEY_DIR &= ~S1_KEY_N_PIN;
@@ -450,7 +455,7 @@ void task()
 		__bis_SR_register(LPM3_bits + GIE);
 		#endif
 		_DINT();
-		//NOP();
+		NOP();
 		if (key & KEY_TIMER) {
 			key &= ~KEY_TIMER;
 			handle_timer();
@@ -460,15 +465,17 @@ void task()
 
 		if (key & KEY_CODE) {
 			key &= ~KEY_CODE;
-			/*send machine code to stm32*/
-			memset(stm32_id, 0, STM32_CODE_LEN);
-			cc1101_addr = 0x0;			
-			unsigned char pkt = 0x06;
-			trx8BitRegAccess(RADIO_WRITE_ACCESS, PKTCTRL1, &pkt, 1);
-			g_state = STATE_ASK_CC1101_ADDR;
-			b_protection_state =0;
-			switch_protect(0);
-			handle_cc1101_addr(NULL,0);
+			if (g_state == STATE_PROTECT_ON) {
+				/*send machine code to stm32*/
+				memset(stm32_id, 0, STM32_CODE_LEN);
+				cc1101_addr = 0x0;			
+				unsigned char pkt = 0x06;
+				trx8BitRegAccess(RADIO_WRITE_ACCESS, PKTCTRL1, &pkt, 1);
+				g_state = STATE_ASK_CC1101_ADDR;
+				b_protection_state =0;
+				switch_protect(0);
+				handle_cc1101_addr(NULL,0);
+			}
 			CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
 			CODE_KEY_IE |= CODE_KEY_N_PIN;
 		}
@@ -476,7 +483,8 @@ void task()
 		if (key & KEY_S1) {
 			key &= ~KEY_S1;
 			/*send s1 alarm to stm32*/
-			handle_cc1101_cmd(CMD_ALARM, 0x02);
+			if (!(last_sub_cmd & 0x01))
+				handle_cc1101_cmd(CMD_ALARM, 0x02);
 			S1_KEY_IFG &= ~S1_KEY_N_PIN;
 			S1_KEY_IE  |= S1_KEY_N_PIN;
 		}
@@ -491,7 +499,7 @@ void task()
 			key &= ~KEY_INFRAR;
 			/*send infrar alarm to stm32*/
 			//add int count then make decision
-			if (b_protection_state)
+			if (b_protection_state && !(last_sub_cmd & 0x02))
 			handle_cc1101_cmd(CMD_ALARM, 0x01);
 			INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 			INFRAR_KEY_IE |= INFRAR_KEY_N_PIN;

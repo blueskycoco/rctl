@@ -124,7 +124,6 @@ void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 	{
 		key |= KEY_DOOR;
 		DOOR_KEY_IE  &= ~DOOR_KEY_N_PIN;
-		DOOR_KEY_IFG &= ~DOOR_KEY_N_PIN;
 	}
 
 	if ((key & KEY_CODE) || (key & KEY_S1) || (key & KEY_DOOR))
@@ -262,7 +261,6 @@ void switch_protect(unsigned char state)
 		//timer off
 		//infrar int on
 		//TACTL = MC_0;
-		DOOR_KEY_IFG &= ~DOOR_KEY_N_PIN;
 		DOOR_KEY_IE  |= DOOR_KEY_N_PIN;
 		//DOOR_POWER_OUT &= ~DOOR_POWER_N_PIN;
 		LED_OUT |= LED_N_PIN;
@@ -272,7 +270,6 @@ void switch_protect(unsigned char state)
 		//infrar int off
 		//TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 		DOOR_KEY_IE  &= ~DOOR_KEY_N_PIN;
-		DOOR_KEY_IFG &= ~DOOR_KEY_N_PIN;
 		//DOOR_POWER_OUT |= DOOR_POWER_N_PIN;
 		LED_OUT &= ~LED_N_PIN;
 		//ca_ctl(0);
@@ -400,6 +397,13 @@ void task()
 	LED_SEL &= ~LED_N_PIN;
 	LED_DIR |= LED_N_PIN;
 	LED_OUT &= ~LED_N_PIN;
+	LED_OUT |= LED_N_PIN;
+	__delay_cycles(500000);
+	 LED_OUT &= ~LED_N_PIN;
+	__delay_cycles(500000);
+	LED_OUT |= LED_N_PIN;
+	__delay_cycles(500000);
+	LED_OUT &= ~LED_N_PIN;
 
 	S1_KEY_SEL &= ~S1_KEY_N_PIN;
 	S1_KEY_DIR &= ~S1_KEY_N_PIN;
@@ -437,7 +441,7 @@ void task()
 		__bis_SR_register(LPM3_bits + GIE);
 		#endif
 		_DINT();
-		//NOP();
+		NOP();
 		if (key & KEY_TIMER) {
 			key &= ~KEY_TIMER;
 			handle_timer();
