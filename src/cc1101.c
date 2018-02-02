@@ -282,7 +282,6 @@ int radio_read(unsigned char *buf, unsigned short *buf_len) {
 void radio_sleep() {
 	trxSpiCmdStrobe(RF_SIDLE);
 	trxSpiCmdStrobe(RF_SPWD);
-	P2IE  &= ~BIT0;
 }
 int radio_set_freq(unsigned long freq) {
 

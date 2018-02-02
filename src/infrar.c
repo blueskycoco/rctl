@@ -14,7 +14,7 @@
 #define DEVICE_MODE		0xD1
 #define ID_CODE_LEN		4
 #define STM32_CODE_LEN	6
-#define ID_CODE			0x0000000c
+#define ID_CODE			0x00000001
 #define CMD_REG_CODE		0x0000
 #define CMD_REG_CODE_ACK	0x0001
 #define CMD_CONFIRM_CODE	0x0014
@@ -116,14 +116,12 @@ void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 	if (CODE_KEY_IFG & CODE_KEY_N_PIN )
 	{
 		key |= KEY_CODE;
-		CODE_KEY_IFG  &= ~CODE_KEY_N_PIN;
 		CODE_KEY_IE  &= ~CODE_KEY_N_PIN;
 	}
 	
 	if (S1_KEY_IFG & S1_KEY_N_PIN )
 	{
 		key |= KEY_S1;
-		S1_KEY_IFG  &= ~S1_KEY_N_PIN;
 		S1_KEY_IE  &= ~S1_KEY_N_PIN;
 	}
 
@@ -139,8 +137,7 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 	if (INFRAR_KEY_IFG & INFRAR_KEY_N_PIN )
 	{
 		key |= KEY_INFRAR;
-		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;		
-		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
+		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
 		#if USE_SMCLK
 		__bic_SR_register_on_exit(LPM0_bits);
 		#else
@@ -151,7 +148,6 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 	if (INFRAR_KEY_IFG & BIT0 )
 	{
 		key |= KEY_WIRELESS;
-		INFRAR_KEY_IFG  &= ~BIT0;
 		INFRAR_KEY_IE  &= ~BIT0;
 		#if USE_SMCLK
 		__bic_SR_register_on_exit(LPM0_bits);
@@ -214,12 +210,12 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 	cmd[ofs++] = (crc >> 8) & 0xff;
 	cmd[ofs++] = (crc) & 0xff;
 	radio_send(cmd, ofs);
-	//if (id == NULL) {
-	//	P2REN &= ~BIT0;
+	if (id == NULL) {
+		P2REN &= ~BIT0;
 		//P2IES &= ~BIT0;
-	//	P2IFG &= ~BIT0;
-	//	P2IE  |= BIT0;
-	//}
+		P2IFG &= ~BIT0;
+		P2IE  |= BIT0;
+	}
 }
 void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd) 
 {	
@@ -263,24 +259,29 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	radio_send(cmd, ofs);
 	//if (TACTL == MC_0)
 	//	TACTL = TASSEL_1 + MC_2 + TAIE;
-	//P2IE  |= BIT0;
+	P2IE  |= BIT0;
 }
 
 void switch_protect(unsigned char state)
 {
 	b_protection_state = state;
-	last_sub_cmd = 0;
 	if (b_protection_state) {
-		INFRAR_POWER_OUT &= ~INFRAR_POWER_N_PIN;
-		__delay_cycles(100);
-		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
+		/*switch to protect on*/
+		//timer off
+		//infrar int on
+		//TACTL = MC_0;
 		INFRAR_KEY_IE  |= INFRAR_KEY_N_PIN;
+		INFRAR_POWER_OUT &= ~INFRAR_POWER_N_PIN;
 		LED_OUT |= LED_N_PIN;
 	} else {
-		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
+		/*switch to protect off*/
+		//timer on
+		//infrar int off
+		//TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
 		INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
 		LED_OUT &= ~LED_N_PIN;
+		//ca_ctl(0);
 	}				
 }
 /*	
@@ -328,8 +329,6 @@ void handle_cc1101_resp()
 		
 		case CMD_CONFIRM_CODE_ACK:
 				g_state = STATE_PROTECT_ON;
-				CODE_KEY_IE  |= CODE_KEY_N_PIN;
-				S1_KEY_IE  |= S1_KEY_N_PIN;
 				handle_cc1101_cmd(CMD_CUR_STATUS, 0x00);
 			break;
 		case CMD_ALARM_ACK:
@@ -339,12 +338,9 @@ void handle_cc1101_resp()
 			switch (resp[len+1]) {
 				case 0x01:
 					last_sub_cmd &= ~0x02;
-					if (b_protection_state)
-					INFRAR_KEY_IE  |= INFRAR_KEY_N_PIN;
 					break;
 				case 0x02:
 					last_sub_cmd &= ~0x01;
-					S1_KEY_IE  |= S1_KEY_N_PIN;
 					break;
 				default:
 					break;		
@@ -382,7 +378,6 @@ void handle_timer()
 	else {
 		if (last_sub_cmd & 0x01)
 			handle_cc1101_cmd(CMD_ALARM,0x02);
-		
 		if (b_protection_state) {
 			if (last_sub_cmd & 0x02)
 				handle_cc1101_cmd(CMD_ALARM,0x01);
@@ -411,26 +406,18 @@ void task()
 	LED_SEL &= ~LED_N_PIN;
 	LED_DIR |= LED_N_PIN;
 	LED_OUT &= ~LED_N_PIN;
-	
-	LED_OUT |= LED_N_PIN;
-	__delay_cycles(500000);
-	 LED_OUT &= ~LED_N_PIN;
-	__delay_cycles(500000);
-	LED_OUT |= LED_N_PIN;
-	__delay_cycles(500000);
-	LED_OUT &= ~LED_N_PIN;
 
 	S1_KEY_SEL &= ~S1_KEY_N_PIN;
 	S1_KEY_DIR &= ~S1_KEY_N_PIN;
 	S1_KEY_REN &= ~S1_KEY_N_PIN;
-	S1_KEY_IE  &= ~S1_KEY_N_PIN;
+	S1_KEY_IE  |= S1_KEY_N_PIN;
 	S1_KEY_IES &= ~S1_KEY_N_PIN;
 	S1_KEY_IFG &= ~S1_KEY_N_PIN;
 
 	CODE_KEY_SEL &= ~CODE_KEY_N_PIN;
 	CODE_KEY_DIR &= ~CODE_KEY_N_PIN;
 	CODE_KEY_REN &= ~CODE_KEY_N_PIN;
-	CODE_KEY_IE  &= ~CODE_KEY_N_PIN;
+	CODE_KEY_IE  |= CODE_KEY_N_PIN;
 	CODE_KEY_IES |= CODE_KEY_N_PIN;
 	CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
 
@@ -444,14 +431,14 @@ void task()
 	INFRAR_POWER_SEL &= ~INFRAR_POWER_N_PIN;
 	INFRAR_POWER_DIR |= INFRAR_POWER_N_PIN;
 	INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
-	radio_init();
-	handle_cc1101_addr(NULL, 0);
 	#if USE_SMCLK
 	CCR0 = 32768;
 	TACTL = TASSEL_2 + MC_1 + TAIE;
 	#else
 	TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 	#endif
+	radio_init();
+	handle_cc1101_addr(NULL, 0);
 	while (1) {
 		//__bis_SR_register(LPM0_bits + GIE);
 		#if USE_SMCLK
@@ -464,38 +451,56 @@ void task()
 		if (key & KEY_TIMER) {
 			key &= ~KEY_TIMER;
 			handle_timer();
+			//radio_send(cmd,len);
+			//radio_sleep();
 		}
 
 		if (key & KEY_CODE) {
 			key &= ~KEY_CODE;
-			if (g_state == STATE_PROTECT_ON) {				
-				S1_KEY_IE  &= ~S1_KEY_N_PIN;
-				memset(stm32_id, 0, STM32_CODE_LEN);
-				cc1101_addr = 0x0;			
-				unsigned char pkt = 0x06;
-				trx8BitRegAccess(RADIO_WRITE_ACCESS, PKTCTRL1, &pkt, 1);
-				g_state = STATE_ASK_CC1101_ADDR;
-				b_protection_state =0;
-				switch_protect(0);
-				handle_cc1101_addr(NULL,0);
-			}
+			/*send machine code to stm32*/
+			memset(stm32_id, 0, STM32_CODE_LEN);
+			cc1101_addr = 0x0;			
+			unsigned char pkt = 0x06;
+			trx8BitRegAccess(RADIO_WRITE_ACCESS, PKTCTRL1, &pkt, 1);
+			g_state = STATE_ASK_CC1101_ADDR;
+			b_protection_state =0;
+			switch_protect(0);
+			handle_cc1101_addr(NULL,0);
+			CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
+			CODE_KEY_IE |= CODE_KEY_N_PIN;
 		}
 
 		if (key & KEY_S1) {
 			key &= ~KEY_S1;
-			if (!(last_sub_cmd & 0x01))
-				handle_cc1101_cmd(CMD_ALARM, 0x02);
+			/*send s1 alarm to stm32*/
+			handle_cc1101_cmd(CMD_ALARM, 0x02);
+			S1_KEY_IFG &= ~S1_KEY_N_PIN;
+			S1_KEY_IE  |= S1_KEY_N_PIN;
 		}
+
+		//if (key & KEY_LOWPOWER) {
+		//	key &= ~KEY_LOWPOWER;
+		//	/*send s1 alarm to stm32*/
+		//	handle_cc1101_cmd(CMD_LOW_POWER, 0x01);
+		//}
 
 		if (key & KEY_INFRAR) {
 			key &= ~KEY_INFRAR;
-			if (!(last_sub_cmd & 0x02) && b_protection_state)
-				handle_cc1101_cmd(CMD_ALARM, 0x01);
+			/*send infrar alarm to stm32*/
+			//add int count then make decision
+			if (b_protection_state)
+			handle_cc1101_cmd(CMD_ALARM, 0x01);
+			INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
+			INFRAR_KEY_IE |= INFRAR_KEY_N_PIN;
 		}
 
 		if (key & KEY_WIRELESS) {
 			key &= ~KEY_WIRELESS;
+			/*new data come from stm32*/
+			//P2IE  &= ~BIT0;
 			handle_cc1101_resp();
+			INFRAR_KEY_IFG &= ~BIT0;
+			P2IE  |= BIT0;
 		}
 		NOP();
 		_EINT();
