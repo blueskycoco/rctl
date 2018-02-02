@@ -182,7 +182,14 @@ void cca()
 		RF_GDO0_PxIFG	&= ~RF_GDO0_PIN;
 		trxSpiCmdStrobe( RF_STX );
 
-		__delay_cycles(700);
+		//__delay_cycles(700);
+		uint32_t i = 0;
+		while (!(RF_GDO0_PxIFG & RF_GDO0_PIN)) {
+			i++;
+			__delay_cycles(1);
+			if (i>=1000)
+				break;
+		}
 		if (RF_GDO0_PxIFG & RF_GDO0_PIN)
 		{
 			RF_GDO0_PxIFG	&= ~RF_GDO0_PIN;
@@ -275,6 +282,7 @@ int radio_read(unsigned char *buf, unsigned short *buf_len) {
 void radio_sleep() {
 	trxSpiCmdStrobe(RF_SIDLE);
 	trxSpiCmdStrobe(RF_SPWD);
+	P2IE  &= ~BIT0;
 }
 int radio_set_freq(unsigned long freq) {
 
