@@ -298,10 +298,7 @@ void handle_cc1101_resp()
 	if (result !=0 && len > 0) {
 		if (resp[2] != MSG_HEAD0 || resp[3] != MSG_HEAD1)
 			return ;		
-		len = resp[4];
-		unsigned short crc = CRC(resp, len+3);
-		/*check crc*/
-		if (crc != (resp[len+3] << 8 | resp[len+4]))
+		if (resp[4] != len -5)
 			return ;
 		/*check subdevice id = local device id*/
 		if (ID_CODE !=((resp[11]<<24)|(resp[12]<<16)|(resp[13]<<8)|(resp[14]<<0)))
@@ -311,6 +308,12 @@ void handle_cc1101_resp()
 			if (memcmp(stm32_id, resp+5, STM32_CODE_LEN) !=0 && g_state !=STATE_ASK_CC1101_ADDR)
 				return ;
 		}
+		len = resp[4];
+		unsigned short crc = CRC(resp, len+3);
+		/*check crc*/
+		if (crc != (resp[len+3] << 8 | resp[len+4]))
+			return ;
+		
 	cmd_type = resp[15]<<8 | resp[16];
 	switch (cmd_type) {
 		case CMD_REG_CODE_ACK:	
@@ -360,14 +363,15 @@ void handle_cc1101_resp()
 			break;
 	}
 
+	if (last_sub_cmd == 0 && g_state == STATE_PROTECT_ON)
+		radio_sleep();
+
 	}
 
 //	if (last_sub_cmd == 0 && b_protection_state)
 //	{
 //		TACTL = MC_0;
 //	}
-	if (last_sub_cmd == 0 && g_state == STATE_PROTECT_ON)
-		radio_sleep();
 }
 void handle_timer()
 {
@@ -405,6 +409,12 @@ void task()
 	unsigned short bat = 0;
 	LED_SEL &= ~LED_N_PIN;
 	LED_DIR |= LED_N_PIN;
+	LED_OUT |= LED_N_PIN;
+	__delay_cycles(500000);
+	 LED_OUT &= ~LED_N_PIN;
+	__delay_cycles(500000);
+	LED_OUT |= LED_N_PIN;
+	__delay_cycles(500000);
 	LED_OUT &= ~LED_N_PIN;
 
 	S1_KEY_SEL &= ~S1_KEY_N_PIN;
@@ -500,7 +510,7 @@ void task()
 			//P2IE  &= ~BIT0;
 			handle_cc1101_resp();
 			INFRAR_KEY_IFG &= ~BIT0;
-			P2IE  |= BIT0;
+			//P2IE  |= BIT0;
 		}
 		NOP();
 		_EINT();

@@ -81,7 +81,7 @@ unsigned char stm32_id[STM32_CODE_LEN] = {0};
 unsigned char zero_id[STM32_CODE_LEN] = {0};
 unsigned char cc1101_addr = 0;
 #define STM32_ADDR	0x01
-#define USE_SMCLK 0
+#define USE_SMCLK 1
 int test_cnt = 0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
@@ -93,7 +93,7 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 			{
 					#if USE_SMCLK
 					test_cnt++;
-					if (test_cnt == 150) {
+					if (test_cnt == 15) {
 						test_cnt = 0;
 					key |= KEY_TIMER;
 					__bic_SR_register_on_exit(LPM0_bits);
@@ -339,7 +339,7 @@ void handle_cc1101_resp()
 			break;
 		case CMD_LOW_POWER_ACK:
 		case CMD_CUR_STATUS_ACK:
-			if (b_protection_state != resp[len+2]) {
+			if (b_protection_state == resp[len+2]) {
 				switch_protect(resp[len+2]);
 			}
 			if (cmd_type == CMD_LOW_POWER_ACK)

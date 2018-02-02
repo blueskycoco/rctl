@@ -236,12 +236,12 @@ int radio_init(void)
 	//create_seed();
 	return 0;
 }
-int radio_send(unsigned char *payload, unsigned short payload_len) {
+int radio_send(unsigned char *payload, unsigned char payload_len) {
 
 	#ifndef HAND
 	Mrfi_RxModeOff();
 	#endif
-	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_SINGLE_ACCESS, TXFIFO, (unsigned char *)&payload_len, 1);
+	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_SINGLE_ACCESS, TXFIFO, &payload_len, 1);
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
 	#ifndef HAND
 	cca();
@@ -252,7 +252,7 @@ int radio_send(unsigned char *payload, unsigned short payload_len) {
 	#endif
 	return(0);
 }
-int radio_read(unsigned char *buf, unsigned short *buf_len) {
+int radio_read(unsigned char *buf, unsigned char *buf_len) {
 	unsigned char status[2];
 	unsigned char pktLen;
 	//trxSpiCmdStrobe(RF_SRX);
