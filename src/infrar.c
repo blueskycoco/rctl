@@ -4,6 +4,7 @@
 #include <string.h>
 #include "cc1101_def.h"
 #include "cc1101.h"
+#include "spi.h"
 #include "task.h"
 /* process
   * 1 key pressed , send register code
@@ -293,7 +294,11 @@ void handle_cc1101_resp()
 	unsigned char resp[32] = {0};
 	unsigned char len = 32;
 	unsigned short cmd_type = 0;
-	unsigned char sub_cmd_type = 0;
+	uint32_t id = resp[11];
+	id = (id << 8) + resp[12];
+	id = (id << 8) + resp[13];
+	id = (id << 8) + resp[14];
+	//unsigned char sub_cmd_type = 0;
 	int result = radio_read(resp, &len);
 	if (result !=0 && len > 0) {
 		if (resp[2] != MSG_HEAD0 || resp[3] != MSG_HEAD1)
@@ -301,7 +306,7 @@ void handle_cc1101_resp()
 		if (resp[4] != len -5)
 			return ;
 		/*check subdevice id = local device id*/
-		if (ID_CODE !=((resp[11]<<24)|(resp[12]<<16)|(resp[13]<<8)|(resp[14]<<0)))
+		if (ID_CODE != id)
 			return ;
 		/*check stm32 id = saved stm32 id*/
 		if (memcmp(stm32_id , zero_id, STM32_CODE_LEN) !=0) {
@@ -402,11 +407,11 @@ void handle_timer()
 }
 void task()
 {		
-	int i=0;
-	unsigned char cmd[10] = {0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x37};
-	unsigned char cmd1[20];
-	unsigned short len = 10;
-	unsigned short bat = 0;
+	//int i=0;
+	//unsigned char cmd[10] = {0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x37};
+	//unsigned char cmd1[20];
+	//unsigned short len = 10;
+	//unsigned short bat = 0;
 	LED_SEL &= ~LED_N_PIN;
 	LED_DIR |= LED_N_PIN;
 	LED_OUT |= LED_N_PIN;
