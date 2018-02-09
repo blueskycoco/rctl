@@ -138,7 +138,7 @@ uint8_t MRFI_RandomByte(void)
   return mrfiRndSeed;
 }
 
-static void Mrfi_RandomBackoffDelay(void)
+/*static void Mrfi_RandomBackoffDelay(void)
 {
   uint8_t backoffs;
   uint8_t i;
@@ -148,7 +148,7 @@ static void Mrfi_RandomBackoffDelay(void)
   {
     __delay_cycles( 1 );
   }
-}
+}*/
 void Mrfi_RxModeOff(void)
 {
   RF_GDO_PxIE	&= ~RF_GDO_PIN;
@@ -170,9 +170,9 @@ static void Mrfi_RxModeOn(void)
 
 void cca()
 {
-	uint8_t ccaRetries = 400;
-	uint8_t papd = 0x1b;
-	uint8_t sync = 0x06;
+	uint16_t ccaRetries = 400;
+	//uint8_t papd = 0x1b;
+	//uint8_t sync = 0x06;
 	for (;;)
 	{
 		trxSpiCmdStrobe( RF_SRX );
