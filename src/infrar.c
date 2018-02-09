@@ -294,10 +294,6 @@ void handle_cc1101_resp()
 	unsigned char resp[32] = {0};
 	unsigned char len = 32;
 	unsigned short cmd_type = 0;
-	uint32_t id = resp[11];
-	id = (id << 8) + resp[12];
-	id = (id << 8) + resp[13];
-	id = (id << 8) + resp[14];
 	//unsigned char sub_cmd_type = 0;
 	int result = radio_read(resp, &len);
 	if (result !=0 && len > 0) {
@@ -306,6 +302,10 @@ void handle_cc1101_resp()
 		if (resp[4] != len -5)
 			return ;
 		/*check subdevice id = local device id*/
+		uint32_t id = resp[11];
+		id = (id << 8) + resp[12];
+		id = (id << 8) + resp[13];
+		id = (id << 8) + resp[14];
 		if (ID_CODE != id)
 			return ;
 		/*check stm32 id = saved stm32 id*/
