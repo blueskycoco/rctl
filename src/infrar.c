@@ -15,7 +15,7 @@
 #define DEVICE_MODE		0xD1
 #define ID_CODE_LEN		4
 #define STM32_CODE_LEN	6
-#define ID_CODE			0x00000001
+#define ID_CODE			0x0000000c
 #define CMD_REG_CODE		0x0000
 #define CMD_REG_CODE_ACK	0x0001
 #define CMD_CONFIRM_CODE	0x0014

@@ -15,7 +15,7 @@
 #define DEVICE_MODE		0x44
 #define ID_CODE_LEN		4
 #define STM32_CODE_LEN	6
-#define ID_CODE			0x00000002
+#define ID_CODE			0x00000001
 #define CMD_REG_CODE		0x0000
 #define CMD_REG_CODE_ACK	0x0001
 #define CMD_CONFIRM_CODE	0x0014
@@ -82,7 +82,7 @@ unsigned char stm32_id[STM32_CODE_LEN] = {0};
 unsigned char zero_id[STM32_CODE_LEN] = {0};
 unsigned char cc1101_addr = 0;
 #define STM32_ADDR	0x01
-#define USE_SMCLK 0
+#define USE_SMCLK 1
 int test_cnt = 0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	

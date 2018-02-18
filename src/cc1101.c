@@ -17,6 +17,7 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{FSCTRL1,	0x06},
 	{ADDR, 		0x00},
 	{PKTCTRL1,	0x06},
+	{PKTLEN,	0x18},
 	#if 0
 	{FREQ2,		0x10},
 	{FREQ1,		0xa7},
@@ -274,8 +275,9 @@ int radio_read(unsigned char *buf, unsigned char *buf_len) {
 	} else {
 		*buf_len = 0;
 		status[1] = 0;
-		trxSpiCmdStrobe(RF_SFRX);
 	}
+	
+	trxSpiCmdStrobe(RF_SFRX);
 
 	return (status[1] & CRC_OK);
 }
