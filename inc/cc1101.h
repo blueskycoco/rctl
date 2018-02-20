@@ -29,6 +29,10 @@
 #define RADIO_CHANNEL_NOT_CLR   0x88
 #define RADIO_CHANNEL_IS_CLR    0x89
 #define TX_BUF_SIZE 128
+
+
+#define ID_CODE			0x00000002
+#define RAND_DELAY		85
 typedef struct
 {
     uint16  addr;

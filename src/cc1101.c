@@ -206,7 +206,7 @@ void cca()
 			if (ccaRetries != 0)
 			{
 				//Mrfi_RandomBackoffDelay();
-				__delay_cycles(25);
+				__delay_cycles(RAND_DELAY);
 				ccaRetries--;
 			}
 			else 
