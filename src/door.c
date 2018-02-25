@@ -84,6 +84,7 @@ unsigned char cc1101_addr = 0;
 #define STM32_ADDR	0x01
 #define USE_SMCLK 0
 int test_cnt = 0;
+int resend_cnt = 0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
 	switch( TA0IV )	
@@ -307,6 +308,7 @@ void handle_cc1101_resp()
 	}
 
 	if (last_sub_cmd == 0 && g_state == STATE_PROTECT_ON)
+		resend_cnt = 0;
 		radio_sleep();
 
 	}
@@ -318,6 +320,19 @@ void handle_cc1101_resp()
 }
 void handle_timer()
 {
+	if (g_state == STATE_ASK_CC1101_ADDR ||
+		g_state == STATE_CONFIRM_CC1101_ADDR ||
+		last_sub_cmd != 0) {
+		resend_cnt++;
+		if (resend_cnt == 10)
+		{
+			last_sub_cmd = 0;
+			radio_sleep();
+			return ;
+		}
+	}
+
+	if (resend_cnt < 10 || resend_cnt > 50) {
 	if (g_state == STATE_ASK_CC1101_ADDR)
 		handle_cc1101_addr(NULL, 0);
 	else if (g_state == STATE_CONFIRM_CC1101_ADDR)
@@ -332,7 +347,9 @@ void handle_timer()
 		if (last_sub_cmd & 0x04)
 			handle_cc1101_cmd(CMD_LOW_POWER,0x00);
 	}
-
+	if (resend_cnt > 50)
+		resend_cnt = 0;
+	}
 	//unsigned short bat = read_adc();
 	//if (bat < MIN_BAT)
 	//	handle_cc1101_cmd(CMD_LOW_POWER,0x00);
