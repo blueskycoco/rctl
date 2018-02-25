@@ -10,7 +10,8 @@
   * 1 key pressed , send register code
   * 2 tamper removed , send alarm
   * 3 in rcv status, GOD2 int trigger cc1101 rcv 
-  * 4 loop get battery status
+  * 4 door trigger then send alarm to stm32
+  *    door open led blink
   */
 #define DEVICE_MODE		0x44
 #define ID_CODE_LEN		4
@@ -75,14 +76,13 @@
 #define STATE_PROTECT_OFF			3
 unsigned char g_state = STATE_ASK_CC1101_ADDR;
 #define MIN_BAT		0x96
-unsigned char b_protection_state = 0;	/*protection state*/
 unsigned char last_sub_cmd = 0x00; /*0x01 s1_alarm, 0x02 infrar_alarm, 0x04 low_power_alarm, 0x08 cur_status*/
 volatile unsigned char key = 0x0;
 unsigned char stm32_id[STM32_CODE_LEN] = {0};
 unsigned char zero_id[STM32_CODE_LEN] = {0};
 unsigned char cc1101_addr = 0;
 #define STM32_ADDR	0x01
-#define USE_SMCLK 1
+#define USE_SMCLK 0
 int test_cnt = 0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
@@ -148,21 +148,6 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 		#endif
 	}
 }
-//void __attribute__ ((interrupt(COMPARATORA_VECTOR))) Comp_ISR (void)
-//{
-//	key |= KEY_LOWPOWER;
-// __bic_SR_register_on_exit(LPM3_bits);       
-//}
-
-void ca_ctl(int on)
-{
-	CACTL2 = P2CA0;
-	if (on)
-		CACTL1 = CAREF1+ CAREF0 + CAON + CAIE + CARSEL;
-	else
-		CACTL1 = 0;
-}
-
 /*
   	msp430 -> stm32 
 	0x01 cc1101_addr 0x6c 0xaa data_len stm32_id msp430_id cmd_type sub_cmd_type device_type battery crc
@@ -234,14 +219,10 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 			last_sub_cmd |= 0x01;
 	} else if (main_cmd == CMD_LOW_POWER) {
 		last_sub_cmd |= 0x04;
-	} else if (main_cmd == CMD_CUR_STATUS) {
-		last_sub_cmd |= 0x08;
-	}
+	} 
 	
 	cmd[ofs++] = DEVICE_TYPE;
 	unsigned short bat = read_adc();
-	//if (b_protection_state)
-	//	ca_ctl(1);
 	cmd[ofs++] = (bat >> 8) & 0xff;
 	cmd[ofs++] = (bat) & 0xff;	
 	cmd[4] = ofs-3; 
@@ -249,33 +230,9 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	cmd[ofs++] = (crc >> 8) & 0xff;
 	cmd[ofs++] = (crc) & 0xff;
 	radio_send(cmd, ofs);
-	//if (TACTL == MC_0)
-	//	TACTL = TASSEL_1 + MC_2 + TAIE;
 	P2IE  |= BIT0;
 }
 
-void switch_protect(unsigned char state)
-{
-	b_protection_state = state;
-	if (b_protection_state) {
-		/*switch to protect on*/
-		//timer off
-		//infrar int on
-		//TACTL = MC_0;
-		DOOR_KEY_IE  |= DOOR_KEY_N_PIN;
-		//DOOR_POWER_OUT &= ~DOOR_POWER_N_PIN;
-		LED_OUT |= LED_N_PIN;
-	} else {
-		/*switch to protect off*/
-		//timer on
-		//infrar int off
-		//TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
-		DOOR_KEY_IE  &= ~DOOR_KEY_N_PIN;
-		//DOOR_POWER_OUT |= DOOR_POWER_N_PIN;
-		LED_OUT &= ~LED_N_PIN;
-		//ca_ctl(0);
-	}				
-}
 /*	
 	stm32 -> msp430
 	cc1101_addr 0x01 0x6c 0xaa data_len stm32_id msp430_id cmd_type sub_cmd_type result/protect_status crc
@@ -328,12 +285,8 @@ void handle_cc1101_resp()
 		
 		case CMD_CONFIRM_CODE_ACK:
 				g_state = STATE_PROTECT_ON;
-				handle_cc1101_cmd(CMD_CUR_STATUS, 0x00);
 			break;
 		case CMD_ALARM_ACK:
-			if (b_protection_state != resp[len+2]) {
-				switch_protect(resp[len+2]);
-			}
 			switch (resp[len+1]) {
 				case 0x01:
 					last_sub_cmd &= ~0x02;
@@ -346,14 +299,8 @@ void handle_cc1101_resp()
 			}
 			break;
 		case CMD_LOW_POWER_ACK:
-		case CMD_CUR_STATUS_ACK:
-			if (b_protection_state != resp[len+2]) {
-				switch_protect(resp[len+2]);
-			}
 			if (cmd_type == CMD_LOW_POWER_ACK)
 				last_sub_cmd &= ~0x04;
-			if (cmd_type == CMD_CUR_STATUS_ACK)
-				last_sub_cmd &= ~0x08;
 			break;
 		default:
 			break;
@@ -378,18 +325,12 @@ void handle_timer()
 	else {
 		if (last_sub_cmd & 0x01)
 			handle_cc1101_cmd(CMD_ALARM,0x02);
-		if (b_protection_state) {
-			if (last_sub_cmd & 0x02)
-				handle_cc1101_cmd(CMD_ALARM,0x01);
-		} else {
-			last_sub_cmd &= ~0x02;
-		}
+		
+		if (last_sub_cmd & 0x02)
+			handle_cc1101_cmd(CMD_ALARM,0x01);
 
 		if (last_sub_cmd & 0x04)
 			handle_cc1101_cmd(CMD_LOW_POWER,0x00);
-
-		if (last_sub_cmd & 0x08 || !b_protection_state)
-			handle_cc1101_cmd(CMD_CUR_STATUS,0x00);
 	}
 
 	//unsigned short bat = read_adc();
@@ -397,12 +338,7 @@ void handle_timer()
 	//	handle_cc1101_cmd(CMD_LOW_POWER,0x00);
 }
 void task()
-{		
-//	int i=0;
-//	unsigned char cmd[10] = {0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x37};
-//	unsigned char cmd1[20];
-//	unsigned short len = 10;
-//	unsigned short bat = 0;
+{
 	LED_SEL &= ~LED_N_PIN;
 	LED_DIR |= LED_N_PIN;
 	LED_OUT |= LED_N_PIN;
@@ -430,8 +366,8 @@ void task()
 	DOOR_KEY_SEL &= ~DOOR_KEY_N_PIN;
 	DOOR_KEY_DIR &= ~DOOR_KEY_N_PIN;
 	DOOR_KEY_REN &= ~DOOR_KEY_N_PIN;
-	DOOR_KEY_IE  &= ~DOOR_KEY_N_PIN;
-	DOOR_KEY_IES |= DOOR_KEY_N_PIN;
+	DOOR_KEY_IE  |= DOOR_KEY_N_PIN;
+	DOOR_KEY_IES &= ~DOOR_KEY_N_PIN;
 	DOOR_KEY_IFG &= ~DOOR_KEY_N_PIN;
 	
 	#if USE_SMCLK
@@ -463,8 +399,6 @@ void task()
 			unsigned char pkt = 0x06;
 			trx8BitRegAccess(RADIO_WRITE_ACCESS, PKTCTRL1, &pkt, 1);
 			g_state = STATE_ASK_CC1101_ADDR;
-			b_protection_state =0;
-			switch_protect(0);
 			handle_cc1101_addr(NULL,0);
 			CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
 			CODE_KEY_IE |= CODE_KEY_N_PIN;
@@ -488,8 +422,10 @@ void task()
 			key &= ~KEY_DOOR;
 			/*send infrar alarm to stm32*/
 			//add int count then make decision
-			if (b_protection_state)
+			LED_OUT |= LED_N_PIN;			
+			__delay_cycles(1000);
 			handle_cc1101_cmd(CMD_ALARM, 0x01);
+			LED_OUT &= ~LED_N_PIN;
 			DOOR_KEY_IFG &= ~DOOR_KEY_N_PIN;
 			DOOR_KEY_IE |= DOOR_KEY_N_PIN;
 		}
@@ -497,10 +433,8 @@ void task()
 		if (key & KEY_WIRELESS) {
 			key &= ~KEY_WIRELESS;
 			/*new data come from stm32*/
-			//P2IE  &= ~BIT0;
 			handle_cc1101_resp();
 			P2IFG &= ~BIT0;
-			//P2IE  |= BIT0;
 		}
 		NOP();
 		_EINT();
