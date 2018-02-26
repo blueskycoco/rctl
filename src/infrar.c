@@ -498,7 +498,7 @@ void task()
 			key &= ~KEY_INFRAR;
 			/*send infrar alarm to stm32*/
 			//add int count then make decision
-			if ((b_protection_state && g_state==STATE_PROTECT_ON) || (LIGHT_IN & LIGHT_N_PIN)) {
+			if ((b_protection_state && g_state==STATE_PROTECT_ON) || !(LIGHT_IN & LIGHT_N_PIN)) {
 			
 				handle_cc1101_cmd(CMD_ALARM, 0x01);
 			} else if(!b_protection_state) {
