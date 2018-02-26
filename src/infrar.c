@@ -43,6 +43,12 @@
 #define S1_KEY_IFG      P1IFG
 #define S1_KEY_N_PIN    BIT2
 
+#define LIGHT_SEL		P1SEL
+#define LIGHT_IN		P1IN
+#define LIGHT_DIR		P1DIR
+#define LIGHT_N_PIN		BIT4
+#define LIGHT_REN     	P1REN
+
 #define INFRAR_KEY_SEL      P2SEL
 #define INFRAR_KEY_IN       P2IN
 #define INFRAR_KEY_DIR      P2DIR
@@ -72,6 +78,7 @@
 #define KEY_TIMER 	0x08
 #define KEY_WIRELESS	0x10
 //#define KEY_LOWPOWER	0x20
+#define HAVE_LIGHT	1
 
 #define STATE_ASK_CC1101_ADDR		0
 #define STATE_CONFIRM_CC1101_ADDR	1
@@ -89,6 +96,10 @@ unsigned char cc1101_addr = 0;
 #define USE_SMCLK 0
 int test_cnt = 0;
 int resend_cnt = 0;
+#define SECS_2	1
+#define MINS_5	150
+int g_cnt = SECS_2;
+uint8_t g_trigger = 0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
 	switch( TA0IV )	
@@ -97,17 +108,16 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 		case  4:  break;
 		case 10:  
 			{
-					#if USE_SMCLK
 					test_cnt++;
-					if (test_cnt == 150) {
+					if (test_cnt >= g_cnt) {
 						test_cnt = 0;
-					key |= KEY_TIMER;
-					__bic_SR_register_on_exit(LPM0_bits);
+						key |= KEY_TIMER;
+						#if USE_SMCLK
+						__bic_SR_register_on_exit(LPM0_bits);
+						#else
+						__bic_SR_register_on_exit(LPM3_bits);					
+						#endif
 					}
-					#else
-					key |= KEY_TIMER;
-					__bic_SR_register_on_exit(LPM3_bits);
-					#endif
 			}
 		break;
 	}
@@ -239,9 +249,23 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	cmd[ofs++] = (crc >> 8) & 0xff;
 	cmd[ofs++] = (crc) & 0xff;
 	radio_send(cmd, ofs);
+	LED_OUT |= LED_N_PIN;
+	g_cnt = SECS_2;
 	P2IE  |= BIT0;
 }
-
+void switch_protect(int status)
+{
+	test_cnt = 0;
+	if (status) /*protect on*/
+	{
+		g_cnt = SECS_2;
+	}
+	else
+	{		
+		g_cnt = MINS_5;
+		g_trigger = 0;
+	}
+}
 /*	
 	stm32 -> msp430
 	cc1101_addr 0x01 0x6c 0xaa data_len stm32_id msp430_id cmd_type sub_cmd_type result/protect_status crc
@@ -298,6 +322,7 @@ void handle_cc1101_resp()
 		case CMD_ALARM_ACK:
 			if (b_protection_state != resp[len+2]) {
 				b_protection_state= resp[len+2];
+				switch_protect(b_protection_state);
 			}
 			switch (resp[len+1]) {
 				case 0x01:
@@ -313,6 +338,7 @@ void handle_cc1101_resp()
 		case CMD_LOW_POWER_ACK:
 			if (b_protection_state != resp[len+2]) {
 				b_protection_state= resp[len+2];
+				switch_protect(b_protection_state);
 			}
 				last_sub_cmd &= ~0x04;
 			break;
@@ -320,10 +346,13 @@ void handle_cc1101_resp()
 			break;
 	}
 
-	if (last_sub_cmd == 0 && g_state == STATE_PROTECT_ON)
+	if (last_sub_cmd == 0 && g_state == STATE_PROTECT_ON) {
 		resend_cnt = 0;
+		if (!b_protection_state)
+			g_cnt = MINS_5;
 		radio_sleep();
-
+		LED_OUT &= ~LED_N_PIN;
+		}
 	}
 
 //	if (last_sub_cmd == 0 && b_protection_state)
@@ -340,6 +369,8 @@ void handle_timer()
 		if (resend_cnt == 10)
 		{
 			last_sub_cmd = 0;
+			if (!b_protection_state)
+				g_cnt = MINS_5;
 			radio_sleep();
 			return ;
 		}
@@ -363,6 +394,11 @@ void handle_timer()
 	if (resend_cnt > 50)
 		resend_cnt = 0;
 	}
+
+	if (g_trigger) {
+		g_trigger = 0;
+		handle_cc1101_cmd(CMD_ALARM,0x02);
+	}
 	//unsigned short bat = read_adc();
 	//if (bat < MIN_BAT)
 	//	handle_cc1101_cmd(CMD_LOW_POWER,0x00);
@@ -378,6 +414,10 @@ void task()
 	LED_OUT |= LED_N_PIN;
 	__delay_cycles(500000);
 	LED_OUT &= ~LED_N_PIN;
+
+	LIGHT_SEL &= ~S1_KEY_N_PIN;
+	LIGHT_DIR &= ~S1_KEY_N_PIN;
+	LIGHT_REN &= ~S1_KEY_N_PIN;
 
 	S1_KEY_SEL &= ~S1_KEY_N_PIN;
 	S1_KEY_DIR &= ~S1_KEY_N_PIN;
@@ -407,7 +447,7 @@ void task()
 	CCR0 = 32768;
 	TACTL = TASSEL_2 + MC_1 + TAIE;
 	#else
-	TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
+	TACTL = TASSEL_1 + MC_2 + TAIE;// + ID0;
 	#endif
 	radio_init();
 	handle_cc1101_addr(NULL, 0);
@@ -458,8 +498,12 @@ void task()
 			key &= ~KEY_INFRAR;
 			/*send infrar alarm to stm32*/
 			//add int count then make decision
-			if (b_protection_state && g_state==STATE_PROTECT_ON )
-			handle_cc1101_cmd(CMD_ALARM, 0x01);
+			if ((b_protection_state && g_state==STATE_PROTECT_ON) || (LIGHT_IN & LIGHT_N_PIN)) {
+			
+				handle_cc1101_cmd(CMD_ALARM, 0x01);
+			} else if(!b_protection_state) {
+				g_trigger = 1;
+			}
 			INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 			INFRAR_KEY_IE |= INFRAR_KEY_N_PIN;
 		}
