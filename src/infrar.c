@@ -397,7 +397,7 @@ void handle_timer()
 
 	if (g_trigger) {
 		g_trigger = 0;
-		handle_cc1101_cmd(CMD_ALARM,0x02);
+		handle_cc1101_cmd(CMD_ALARM,0x01);
 	}
 	//unsigned short bat = read_adc();
 	//if (bat < MIN_BAT)
