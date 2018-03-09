@@ -92,6 +92,7 @@ volatile unsigned char key = 0x0;
 unsigned char stm32_id[STM32_CODE_LEN] = {0};
 unsigned char zero_id[STM32_CODE_LEN] = {0};
 unsigned char cc1101_addr = 0;
+unsigned char open_led = 1;
 #define STM32_ADDR	0x01
 #define USE_SMCLK 0
 int test_cnt = 0;
@@ -462,16 +463,18 @@ void task()
 		NOP();
 		if (key & KEY_TIMER) {
 			key &= ~KEY_TIMER;
-			INFRAR_POWER_OUT &= ~INFRAR_POWER_N_PIN;
+			open_led = 1;
 		}
 
 
 		if (key & KEY_INFRAR) {
 			key &= ~KEY_INFRAR;
+			if (open_led) {
 			LED_OUT |= LED_N_PIN;
 			__delay_cycles(100000);
 			LED_OUT &= ~LED_N_PIN;
-			INFRAR_POWER_OUT |= INFRAR_POWER_N_PIN;
+			open_led = 0;
+			}
 			INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 			INFRAR_KEY_IE |= INFRAR_KEY_N_PIN;
 		}
