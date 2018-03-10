@@ -12,7 +12,9 @@
   * 3 in rcv status, GOD2 int trigger cc1101 rcv 
   * 4 loop get battery status
   */
-#define DEVICE_MODE		0xD1
+#define DEVICE_MODE		0xD111
+#define DEVICE_TIME		0x180202
+
 #define ID_CODE_LEN		4
 #define STM32_CODE_LEN	6
 #define CMD_REG_CODE		0x0000
@@ -26,7 +28,7 @@
 #define CMD_CUR_STATUS	0x0010
 #define CMD_CUR_STATUS_ACK	0x0011
 
-#define DEVICE_TYPE		0x02
+#define DEVICE_TYPE		0x42
 #define MSG_HEAD0		0x6c
 #define MSG_HEAD1		0xaa
 #define LED_SEL         P1SEL
@@ -170,6 +172,7 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 /*
   	msp430 -> stm32 
 	0x01 cc1101_addr 0x6c 0xaa data_len stm32_id msp430_id cmd_type sub_cmd_type device_type battery crc
+	0x01 0x00 MSG_HEAD0 MSG_HEAD1 LEN STM32_ID SUB_ID CMD TYPE MODEL TIME BAT CRC
 */
 void handle_cc1101_addr(uint8_t *id, uint8_t res) 
 {	
@@ -191,12 +194,17 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 		cmd[ofs++] = (CMD_REG_CODE >> 8) & 0xff;
 		cmd[ofs++] = CMD_REG_CODE & 0xff;
 		cmd[ofs++] = DEVICE_TYPE;
-		cmd[ofs++] = DEVICE_MODE;
 	} else {		
 		cmd[ofs++] = (CMD_CONFIRM_CODE >> 8) & 0xff;
 		cmd[ofs++] = CMD_CONFIRM_CODE & 0xff;
 		cmd[ofs++] = res;
 		cmd[ofs++] = cc1101_addr;
+		cmd[ofs++] = DEVICE_TYPE;
+		cmd[ofs++] = (DEVICE_MODE>>8)&0xff;
+		cmd[ofs++] = DEVICE_MODE&0xff;
+		cmd[ofs++] = (DEVICE_TIME>>16)&0xff;
+		cmd[ofs++] = (DEVICE_TIME>>8)&0xff;
+		cmd[ofs++] = DEVICE_TIME&0xff;
 	}
 	unsigned short bat = read_adc();
 	cmd[ofs++] = (bat >> 8) & 0xff;
@@ -213,6 +221,10 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 		P2IE  |= BIT0;
 	}
 }
+/*
+  	msp430 -> stm32 
+	0x01 cc1101_addr 0x6c 0xaa data_len stm32_id msp430_id cmd_type sub_cmd_type device_type battery crc
+*/
 void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd) 
 {	
 	unsigned char cmd[32] = {0x00};
@@ -499,7 +511,6 @@ void task()
 			/*send infrar alarm to stm32*/
 			//add int count then make decision
 			if ((b_protection_state && g_state==STATE_PROTECT_ON) || !(LIGHT_IN & LIGHT_N_PIN)) {
-			
 				handle_cc1101_cmd(CMD_ALARM, 0x01);
 			} else if(!b_protection_state) {
 				g_trigger = 1;
