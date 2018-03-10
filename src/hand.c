@@ -12,15 +12,18 @@
   * 4 send out
   */
 #define ID_CODE			0x00000001
+#define DEVICE_MODEL	0xD001
+#define DEVICE_TIME		0x180202
 #define DEVICE_TYPE		0x01
+
 #define	CMD_PROTECT_ON	0x02
 #define	CMD_PROTECT_OFF	0x04
 #define	CMD_ALARM		0x06
 #define	CMD_MUTE		0x0e
 #define MSG_HEAD0		0x6c
 #define MSG_HEAD1		0xaa
-#define PACKAGE_LEN		23
-#define DATA_LEN		16
+#define PACKAGE_LEN		27
+#define DATA_LEN		22
 #define LED_SEL         P2SEL
 #define LED_OUT         P2OUT
 #define LED_DIR         P2DIR
@@ -110,20 +113,27 @@ void task()
 			key = 0x08;
 		TACTL = MC_0;
 	}
-
+/* msp430 -> stm32
+  * 0x01 0x00 MSG_HEAD0 MSG_HEAD1 LEN STM32_ID SUB_ID CMD TYPE MODEL TIME BAT CRC
+  * 1       1       1                  1                  1     6              4           2      1      2          3      2     2
+  */
 	cmd[0] = 0x01; cmd[1] = 0x00;
 	cmd[2] = MSG_HEAD0;cmd[3] = MSG_HEAD1;
-	cmd[4] = 18; cmd[5] = 0x00;cmd[6] = 0x00;cmd[7] = 0x00;cmd[8] = 0x00;cmd[9] = 0x00;cmd[10] = 0x00;
+	cmd[4] = DATA_LEN; cmd[5] = 0x00;cmd[6] = 0x00;cmd[7] = 0x00;cmd[8] = 0x00;cmd[9] = 0x00;cmd[10] = 0x00;
 	cmd[11] = ((long)ID_CODE >> 24) & 0xff;
 	cmd[12] = ((long)ID_CODE >> 16) & 0xff;
 	cmd[13] = ((long)ID_CODE >> 8) & 0xff;
 	cmd[14] = ((long)ID_CODE >> 0) & 0xff;
 	cmd[15] = 0;
-	cmd[17] = 0x00;
-	cmd[18] = DEVICE_TYPE;
+	cmd[17] = DEVICE_TYPE;
+	cmd[18] = (DEVICE_MODEL>>8)&0xff;
+	cmd[19] = DEVICE_MODEL&0xff;
+	cmd[20] = (DEVICE_TIME>>16)&0xff;
+	cmd[21] = (DEVICE_TIME>>8)&0xff;
+	cmd[22] = DEVICE_TIME&0xff;
 	unsigned short bat = read_adc();
-	cmd[19] = (bat >> 8) & 0xff;
-	cmd[20] = (bat) & 0xff;
+	cmd[23] = (bat >> 8) & 0xff;
+	cmd[24] = (bat) & 0xff;
 	if (key == 0x01)
 		cmd[16] = CMD_PROTECT_ON;
 	else if (key == 0x02)
@@ -133,8 +143,8 @@ void task()
 	else
 		cmd[16] = CMD_MUTE;
 	unsigned short crc = CRC(cmd, PACKAGE_LEN - 2);
-	cmd[21] = (crc >> 8) & 0xff;
-	cmd[22] = (crc) & 0xff;
+	cmd[25] = (crc >> 8) & 0xff;
+	cmd[26] = (crc) & 0xff;
 	LED_OUT |= LED_N_PIN;
 	//radio_init();
 	for (i=0;i<3;i++) {
