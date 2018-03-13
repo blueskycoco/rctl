@@ -31,8 +31,8 @@
 #define TX_BUF_SIZE 128
 
 
-#define ID_CODE			0x00000114
-#define RAND_DELAY		65
+#define ID_CODE			0x0000000e
+#define RAND_DELAY		105
 typedef struct
 {
     uint16  addr;
