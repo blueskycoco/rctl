@@ -11,7 +11,7 @@
   * 3 get battery val
   * 4 send out
   */
-#define ID_CODE			0x00000001
+#define ID_CODE			0x00000002
 #define DEVICE_MODEL	0xD001
 #define DEVICE_TIME		0x180202
 #define DEVICE_TYPE		0x01
@@ -136,7 +136,7 @@ void task()
 	cmd[24] = (bat) & 0xff;
 	if (key == 0x01)
 		cmd[16] = CMD_PROTECT_ON;
-	else if (key == 0x02)
+	else if (key == 0x08)
 		cmd[16] = CMD_ALARM;
 	else if (key == 0x04)
 		cmd[16] = CMD_PROTECT_OFF;
@@ -147,7 +147,7 @@ void task()
 	cmd[26] = (crc) & 0xff;
 	LED_OUT |= LED_N_PIN;
 	//radio_init();
-	for (i=0;i<3;i++) {
+	for (i=0;i<1;i++) {
 	//memset(cmd, 0x36, cmd_len);
 	radio_send(cmd, cmd_len);
 	__delay_cycles(300000);
