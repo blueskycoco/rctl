@@ -9,13 +9,17 @@ endif
 ifeq ($(APPNAME), door)
 SOURCES += main.c spi.c cc1101.c door.c
 endif
+ifeq ($(APPNAME), door_ext)
+SOURCES += main.c spi.c cc1101.c door_ext.c
+CFLAGS += -DHAND
+endif
 ifeq ($(APPNAME), infrar)
 SOURCES += main.c spi.c cc1101.c infrar.c
 endif
 VPATH = ./src
 BUILD_ROOT = ./obj
 ALL_SOURCE_CODE_OBJS = $(addprefix $(BUILD_ROOT)/, $(patsubst %.c, %.o, $(SOURCES)))
-SUPPORT_PATH=e:/ti/msp430_gcc
+SUPPORT_PATH=c:/ti/msp430_gcc
 
 CC=msp430-elf-gcc
 OBJCOPY=msp430-elf-objcopy

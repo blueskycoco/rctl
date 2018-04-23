@@ -17,7 +17,7 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{FSCTRL1,	0x06},
 	{ADDR, 		0x00},
 	{PKTCTRL1,	0x06},
-	{PKTLEN,	0x18},
+	{PKTLEN,	0x30},
 	#if 0
 	{FREQ2,		0x10},
 	{FREQ1,		0xa7},
@@ -248,6 +248,7 @@ int radio_send(unsigned char *payload, unsigned char payload_len) {
 	cca();
 	#else
 	trxSpiCmdStrobe(RF_STX);
+	__delay_cycles(300000);
 	//while (!(RF_GDO0_IN & RF_GDO0_PIN));
 	//while ((RF_GDO0_IN & RF_GDO0_PIN));
 	#endif
