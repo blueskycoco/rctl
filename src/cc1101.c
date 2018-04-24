@@ -235,9 +235,6 @@ int radio_init(void)
 		trx8BitRegAccess(RADIO_WRITE_ACCESS, preferredSettings[i].addr, &writeByte, 1);
 	}
 	//create_seed();
-#ifdef HAND
-	radio_sleep();
-#endif
 	return 0;
 }
 int radio_send(unsigned char *payload, unsigned char payload_len) {

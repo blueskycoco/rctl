@@ -211,7 +211,10 @@ void task()
 	#else
 	TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
 	#endif
+	P2IE  &= ~BIT0;
 	radio_init();
+	handle_cc1101_cmd(CMD_CUR_STATUS, 0x01);
+	radio_sleep();
 	while (1) {
 		#if USE_SMCLK
 		__bis_SR_register(LPM0_bits + GIE);
