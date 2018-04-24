@@ -20,9 +20,7 @@ void trxRfSpiInterfaceInit(uint8 prescalerValue)
 	RF_CS_N_PORT_OUT |= RF_CS_N_PIN;
 	RF_GDO_SEL &= ~RF_GDO_PIN;
 	RF_GDO_DIR &= ~RF_GDO_PIN;
-#ifndef HAND
 	RF_GDO_PxIES	|= RF_GDO_PIN;
-#endif
 	RF_GDO0_SEL &= ~RF_GDO0_PIN;
 	RF_GDO0_DIR &= ~RF_GDO0_PIN;
 	RF_GDO0_PxIES	|= RF_GDO0_PIN;	
