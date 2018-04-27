@@ -541,11 +541,7 @@ void task()
 			key &= ~KEY_INFRAR;
 			/*send infrar alarm to stm32*/
 			//add int count then make decision
-#ifdef SW_SPI
-			if (g_state==STATE_PROTECT_ON) {
-#else
 			if ((b_protection_state || !(LIGHT_IN & LIGHT_N_PIN)) && g_state==STATE_PROTECT_ON) {
-#endif
 				handle_cc1101_cmd(CMD_ALARM, 0x01);
 			} else if(!b_protection_state) {
 				g_trigger = 1;
