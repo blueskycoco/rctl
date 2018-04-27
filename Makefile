@@ -16,6 +16,10 @@ endif
 ifeq ($(APPNAME), infrar)
 SOURCES += main.c spi.c cc1101.c infrar.c
 endif
+ifeq ($(APPNAME), infrar_old)
+SOURCES += main.c spi.c cc1101.c infrar.c
+CFLAGS += -DSW_SPI
+endif
 VPATH = ./src
 BUILD_ROOT = ./obj
 ALL_SOURCE_CODE_OBJS = $(addprefix $(BUILD_ROOT)/, $(patsubst %.c, %.o, $(SOURCES)))

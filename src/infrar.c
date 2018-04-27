@@ -31,11 +31,17 @@
 #define DEVICE_TYPE		0x42
 #define MSG_HEAD0		0x6c
 #define MSG_HEAD1		0xaa
+#ifdef SW_SPI
+#define LED_SEL         P1SEL
+#define LED_OUT         P1OUT
+#define LED_DIR         P1DIR
+#define LED_N_PIN       BIT5
+#else
 #define LED_SEL         P1SEL
 #define LED_OUT         P1OUT
 #define LED_DIR         P1DIR
 #define LED_N_PIN       BIT3
-
+#endif
 #define S1_KEY_SEL      P1SEL
 #define S1_KEY_IN       P1IN
 #define S1_KEY_DIR      P1DIR
@@ -50,7 +56,20 @@
 #define LIGHT_DIR		P1DIR
 #define LIGHT_N_PIN		BIT4
 #define LIGHT_REN     	P1REN
-
+#ifdef SW_SPI
+#define INFRAR_KEY_SEL      P1SEL
+#define INFRAR_KEY_IN       P1IN
+#define INFRAR_KEY_DIR      P1DIR
+#define INFRAR_KEY_REN     	P1REN
+#define INFRAR_KEY_IE  		P1IE
+#define INFRAR_KEY_IES     	P1IES
+#define INFRAR_KEY_IFG     	P1IFG
+#define INFRAR_KEY_N_PIN    BIT3
+#define INFRAR_POWER_SEL    P1SEL
+#define INFRAR_POWER_OUT    P1OUT
+#define INFRAR_POWER_DIR    P1DIR
+#define INFRAR_POWER_N_PIN  BIT6
+#else
 #define INFRAR_KEY_SEL      P2SEL
 #define INFRAR_KEY_IN       P2IN
 #define INFRAR_KEY_DIR      P2DIR
@@ -59,7 +78,11 @@
 #define INFRAR_KEY_IES     	P2IES
 #define INFRAR_KEY_IFG     	P2IFG
 #define INFRAR_KEY_N_PIN    BIT4
-
+#define INFRAR_POWER_SEL    P2SEL
+#define INFRAR_POWER_OUT    P2OUT
+#define INFRAR_POWER_DIR    P2DIR
+#define INFRAR_POWER_N_PIN  BIT3
+#endif
 #define CODE_KEY_SEL      	P1SEL
 #define CODE_KEY_IN       	P1IN
 #define CODE_KEY_DIR      	P1DIR
@@ -69,10 +92,6 @@
 #define CODE_KEY_IFG      	P1IFG
 #define CODE_KEY_N_PIN    	BIT1
 
-#define INFRAR_POWER_SEL    P2SEL
-#define INFRAR_POWER_OUT    P2OUT
-#define INFRAR_POWER_DIR    P2DIR
-#define INFRAR_POWER_N_PIN  BIT3
 
 #define KEY_CODE	0x01
 #define KEY_INFRAR	0x02
@@ -137,16 +156,7 @@ void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 		key |= KEY_S1;
 		S1_KEY_IE  &= ~S1_KEY_N_PIN;
 	}
-
-	if ((key & KEY_CODE) || (key & KEY_S1))
-		#if USE_SMCLK
-		__bic_SR_register_on_exit(LPM0_bits);
-		#else
-		__bic_SR_register_on_exit(LPM3_bits);
-		#endif
-}	
-void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
-{  
+#ifdef SW_SPI
 	if (INFRAR_KEY_IFG & INFRAR_KEY_N_PIN )
 	{
 		key |= KEY_INFRAR;
@@ -157,11 +167,32 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 		__bic_SR_register_on_exit(LPM3_bits);
 		#endif
 	}
-	
-	if (INFRAR_KEY_IFG & BIT0 )
+#endif
+	if ((key & KEY_CODE) || (key & KEY_S1))
+		#if USE_SMCLK
+		__bic_SR_register_on_exit(LPM0_bits);
+		#else
+		__bic_SR_register_on_exit(LPM3_bits);
+		#endif
+}	
+void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
+{ 
+#ifndef SW_SPI
+	if (INFRAR_KEY_IFG & INFRAR_KEY_N_PIN )
+	{
+		key |= KEY_INFRAR;
+		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
+		#if USE_SMCLK
+		__bic_SR_register_on_exit(LPM0_bits);
+		#else
+		__bic_SR_register_on_exit(LPM3_bits);
+		#endif
+	}
+#endif
+	if (P2IFG & BIT0 )
 	{
 		key |= KEY_WIRELESS;
-		INFRAR_KEY_IE  &= ~BIT0;
+		P2IE  &= ~BIT0;
 		#if USE_SMCLK
 		__bic_SR_register_on_exit(LPM0_bits);
 		#else
@@ -510,7 +541,11 @@ void task()
 			key &= ~KEY_INFRAR;
 			/*send infrar alarm to stm32*/
 			//add int count then make decision
+#ifdef SW_SPI
+			if (g_state==STATE_PROTECT_ON) {
+#else
 			if ((b_protection_state || !(LIGHT_IN & LIGHT_N_PIN)) && g_state==STATE_PROTECT_ON) {
+#endif
 				handle_cc1101_cmd(CMD_ALARM, 0x01);
 			} else if(!b_protection_state) {
 				g_trigger = 1;
@@ -524,7 +559,7 @@ void task()
 			/*new data come from stm32*/
 			//P2IE  &= ~BIT0;
 			handle_cc1101_resp();
-			INFRAR_KEY_IFG &= ~BIT0;
+			P2IFG &= ~BIT0;
 			//P2IE  |= BIT0;
 		}
 		NOP();
