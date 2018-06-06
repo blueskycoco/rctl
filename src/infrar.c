@@ -458,9 +458,9 @@ void task()
 	__delay_cycles(500000);
 	LED_OUT &= ~LED_N_PIN;
 
-	LIGHT_SEL &= ~S1_KEY_N_PIN;
-	LIGHT_DIR &= ~S1_KEY_N_PIN;
-	LIGHT_REN &= ~S1_KEY_N_PIN;
+	LIGHT_SEL &= ~LIGHT_N_PIN;
+	LIGHT_DIR &= ~LIGHT_N_PIN;
+	LIGHT_REN &= ~LIGHT_N_PIN;
 
 	S1_KEY_SEL &= ~S1_KEY_N_PIN;
 	S1_KEY_DIR &= ~S1_KEY_N_PIN;
