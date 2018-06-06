@@ -50,7 +50,7 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 		case 10:  
 			{
 				g_i++;
-				if (g_i> 30) {					
+				if (g_i> 10) {					
 				__bic_SR_register_on_exit(LPM0_bits);
 				}
 			}
