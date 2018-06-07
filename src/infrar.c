@@ -160,15 +160,15 @@ void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 	if (INFRAR_KEY_IFG & INFRAR_KEY_N_PIN )
 	{
 		key |= KEY_INFRAR;
-		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
-		#if USE_SMCLK
-		__bic_SR_register_on_exit(LPM0_bits);
-		#else
-		__bic_SR_register_on_exit(LPM3_bits);
-		#endif
+		//INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
+		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 	}
 #endif
+#ifdef SW_SPI
+	if ((key & KEY_CODE) || (key & KEY_S1) || (key & KEY_INFRAR))
+#else
 	if ((key & KEY_CODE) || (key & KEY_S1))
+#endif
 		#if USE_SMCLK
 		__bic_SR_register_on_exit(LPM0_bits);
 		#else
@@ -181,18 +181,22 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 	if (INFRAR_KEY_IFG & INFRAR_KEY_N_PIN )
 	{
 		key |= KEY_INFRAR;
-		INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
-		#if USE_SMCLK
-		__bic_SR_register_on_exit(LPM0_bits);
-		#else
-		__bic_SR_register_on_exit(LPM3_bits);
-		#endif
+		//INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
+		//LED_OUT |= LED_N_PIN;		
+		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 	}
 #endif
 	if (P2IFG & BIT0 )
 	{
 		key |= KEY_WIRELESS;
 		P2IE  &= ~BIT0;
+	}
+#ifndef SW_SPI
+	if ((key & KEY_WIRELESS) || (key & KEY_INFRAR))
+#else
+	if (key & KEY_WIRELESS)
+#endif
+	{
 		#if USE_SMCLK
 		__bic_SR_register_on_exit(LPM0_bits);
 		#else
@@ -541,13 +545,16 @@ void task()
 			key &= ~KEY_INFRAR;
 			/*send infrar alarm to stm32*/
 			//add int count then make decision
-			if ((b_protection_state || !(LIGHT_IN & LIGHT_N_PIN)) && g_state==STATE_PROTECT_ON) {
-				handle_cc1101_cmd(CMD_ALARM, 0x01);
-			} else if(!b_protection_state) {
-				g_trigger = 1;
+			if (g_state==STATE_PROTECT_ON) {
+				if (b_protection_state || !(LIGHT_IN & LIGHT_N_PIN)) {
+					//LED_OUT &= ~LED_N_PIN;
+					handle_cc1101_cmd(CMD_ALARM, 0x01);
+				} else if(!b_protection_state) {
+					g_trigger = 1;
+				}
 			}
-			INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
-			INFRAR_KEY_IE |= INFRAR_KEY_N_PIN;
+			//INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
+			//INFRAR_KEY_IE |= INFRAR_KEY_N_PIN;
 		}
 
 		if (key & KEY_WIRELESS) {
