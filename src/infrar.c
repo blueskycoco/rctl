@@ -183,13 +183,17 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 		key |= KEY_INFRAR;
 		//INFRAR_KEY_IE  &= ~INFRAR_KEY_N_PIN;
 		//LED_OUT |= LED_N_PIN;		
+		//if (last_sub_cmd) {
+		//	key |= KEY_TIMER;	
+		//}
 		INFRAR_KEY_IFG &= ~INFRAR_KEY_N_PIN;
 	}
 #endif
 	if (P2IFG & BIT0 )
 	{
 		key |= KEY_WIRELESS;
-		P2IE  &= ~BIT0;
+		//P2IE  &= ~BIT0;
+		P2IFG &= ~BIT0;
 	}
 #ifndef SW_SPI
 	if ((key & KEY_WIRELESS) || (key & KEY_INFRAR))
@@ -562,7 +566,7 @@ void task()
 			/*new data come from stm32*/
 			//P2IE  &= ~BIT0;
 			handle_cc1101_resp();
-			P2IFG &= ~BIT0;
+			//P2IFG &= ~BIT0;
 			//P2IE  |= BIT0;
 		}
 		NOP();
