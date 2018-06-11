@@ -385,6 +385,7 @@ void handle_cc1101_resp()
 				default:
 					break;		
 			}
+			LED_OUT &= ~LED_N_PIN;
 			break;
 		case CMD_LOW_POWER_ACK:
 			if (b_protection_state != resp[len+2]) {
@@ -423,6 +424,7 @@ void handle_timer()
 			if (!b_protection_state)
 				g_cnt = MINS_5;
 			radio_sleep();
+			LED_OUT &= ~LED_N_PIN;
 			return ;
 		}
 	}
