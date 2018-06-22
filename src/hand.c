@@ -11,9 +11,9 @@
   * 3 get battery val
   * 4 send out
   */
-#define ID_CODE			0x00000002
+#define ID_CODE			0x0000000a
 #define DEVICE_MODEL	0xD001
-#define DEVICE_TIME		0x180202
+#define DEVICE_TIME		0x180622
 #define DEVICE_TYPE		0x01
 
 #define	CMD_PROTECT_ON	0x02
