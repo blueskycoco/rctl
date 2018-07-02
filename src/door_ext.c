@@ -244,6 +244,10 @@ void task()
 			LED_OUT |= LED_N_PIN;			
 			__delay_cycles(1000);
 			handle_cc1101_cmd(CMD_ALARM, 0x01);
+			__delay_cycles(100000);
+			handle_cc1101_cmd(CMD_ALARM, 0x01);
+			__delay_cycles(100000);
+			handle_cc1101_cmd(CMD_ALARM, 0x01);
 			radio_sleep();
 			LED_OUT &= ~LED_N_PIN;
 			DOOR_KEY_IFG &= ~DOOR_KEY_N_PIN;
