@@ -24,7 +24,7 @@ VPATH = ./src
 BUILD_ROOT = ./obj
 ALL_SOURCE_CODE_OBJS = $(addprefix $(BUILD_ROOT)/, $(patsubst %.c, %.o, $(SOURCES)))
 SUPPORT_PATH=d:/ti/msp430_gcc
-
+CFLAGS += -DID_CODE=$(ID) -DRAND_DELAY=$(RAND)
 CC=msp430-elf-gcc
 OBJCOPY=msp430-elf-objcopy
 SIZE=msp430-elf-size
