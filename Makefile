@@ -2,14 +2,14 @@ MCU=msp430g2452
 
 SOURCES :=
 CFLAGS= -mmcu=${MCU} -g -O2 -Wall -Wunused
-ifeq ($(APPNAME), hand)
+ifeq (${APPNAME}, hand)
 SOURCES += main.c spi.c cc1101.c hand.c
 CFLAGS += -DHAND
 endif
-ifeq ($(APPNAME), door)
+ifeq (${APPNAME}, door)
 SOURCES += main.c spi.c cc1101.c door.c
 endif
-ifeq ($(APPNAME), infrar)
+ifeq (${APPNAME}, infrar)
 SOURCES += main.c spi.c cc1101.c infrar.c
 endif
 VPATH = ./src
@@ -24,20 +24,20 @@ SIZE=msp430-elf-size
 INCLUDES = -I${SUPPORT_PATH}/include -I./inc
 LDLIBS = -L${SUPPORT_PATH}/include
 
-all: ${APPNAME}.hex
+all: ${APPNAME}_$(ID)_$(TIME).hex
 
 $(ALL_SOURCE_CODE_OBJS): $(BUILD_ROOT)/%.o: %.c
 	${CC} ${CFLAGS} ${INCLUDES} -c -o $@ $<
 
-obj/${APPNAME}.elf: ${ALL_SOURCE_CODE_OBJS}
+obj/${APPNAME}_$(ID)_$(TIME).elf: ${ALL_SOURCE_CODE_OBJS}
 	${CC} -mmcu=${MCU} ${LDLIBS} -o $@ $^
 
-${APPNAME}.hex: obj/${APPNAME}.elf
+${APPNAME}_$(ID)_$(TIME).hex: obj/${APPNAME}_$(ID)_$(TIME).elf
 	${OBJCOPY} -O ihex $< bin/$@
 	${SIZE} $<
-${APPNAME}.bin: ${APPNAME}.elf
+${APPNAME}_$(ID)_$(TIME).bin: ${APPNAME}_$(ID)_$(TIME).elf
 	${OBJCOPY} -S -O binary $< $@
 	${SIZE} $<
 
 clean:
-	rm obj/*.o obj/${APPNAME}.elf bin/${APPNAME}.hex ${APPNAME}.bin
+	-rm obj/*.o obj/${APPNAME}_$(ID)_$(TIME).elf bin/${APPNAME}_$(ID)_$(TIME).hex 
