@@ -13,7 +13,7 @@
   * 4 loop get battery status
   */
 #define DEVICE_MODE		0xD111
-#define DEVICE_TIME		0x180622
+//#define DEVICE_TIME		0x180622
 
 #define ID_CODE_LEN		4
 #define STM32_CODE_LEN	6
