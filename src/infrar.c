@@ -299,8 +299,14 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	unsigned short crc = CRC(cmd, ofs);
 	cmd[ofs++] = (crc >> 8) & 0xff;
 	cmd[ofs++] = (crc) & 0xff;
-	radio_send(cmd, ofs);
 	LED_OUT |= LED_N_PIN;
+	__delay_cycles(100000);
+	LED_OUT &= ~LED_N_PIN;
+	__delay_cycles(100000);
+	LED_OUT |= LED_N_PIN;
+	__delay_cycles(100000);
+	LED_OUT &= ~LED_N_PIN;
+	radio_send(cmd, ofs);
 	g_cnt = SECS_2;
 	P2IE  |= BIT0;
 }
@@ -385,7 +391,7 @@ void handle_cc1101_resp()
 				default:
 					break;		
 			}
-			LED_OUT &= ~LED_N_PIN;
+			//LED_OUT &= ~LED_N_PIN;
 			break;
 		case CMD_LOW_POWER_ACK:
 			if (b_protection_state != resp[len+2]) {
@@ -403,7 +409,7 @@ void handle_cc1101_resp()
 		if (!b_protection_state)
 			g_cnt = MINS_5;
 		radio_sleep();
-		LED_OUT &= ~LED_N_PIN;
+		//LED_OUT &= ~LED_N_PIN;
 		}
 	}
 
@@ -424,7 +430,7 @@ void handle_timer()
 			if (!b_protection_state)
 				g_cnt = MINS_5;
 			radio_sleep();
-			LED_OUT &= ~LED_N_PIN;
+			//LED_OUT &= ~LED_N_PIN;
 			return ;
 		}
 	}
