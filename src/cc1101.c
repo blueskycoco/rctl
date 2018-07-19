@@ -9,6 +9,7 @@
 #define VAL_MDMCFG3	0x3b
 #define VAL_MDMCFG4 0x2d
 #define MAX_PAYLOAD	32
+uint8_t g_delay = 50;
 const registerSetting_t preferredSettings_1200bps[]=
 {
 	{IOCFG2,	0x06},
@@ -172,6 +173,7 @@ static void Mrfi_RxModeOn(void)
 void cca()
 {
 	uint32_t ccaRetries = 400;
+	uint8_t i;
 //	uint8_t papd = 0x1b;
 //	uint8_t sync = 0x06;
 	for (;;)
@@ -206,7 +208,10 @@ void cca()
 			if (ccaRetries != 0)
 			{
 				//Mrfi_RandomBackoffDelay();
-				__delay_cycles(RAND_DELAY);
+				if (g_delay == 0)
+					g_delay = 50;
+				for (i=0; i<g_delay; i++)
+					__delay_cycles(1);
 				ccaRetries--;
 			}
 			else 
@@ -234,6 +239,7 @@ int radio_init(void)
 		writeByte = preferredSettings[i].data;
 		trx8BitRegAccess(RADIO_WRITE_ACCESS, preferredSettings[i].addr, &writeByte, 1);
 	}
+	read_info(ADDR_DELAY, &g_delay, 1);
 	//create_seed();
 	return 0;
 }
@@ -350,4 +356,7 @@ unsigned short read_adc()
 	ADC10CTL0 &= ~ENC;
 	return (unsigned short)(total_adc/10);
 }
-
+void read_info(char addr, unsigned char *buf, char len)
+{
+	memcpy(buf, (const void *)(0x01000+addr), len);
+}

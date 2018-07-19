@@ -225,10 +225,11 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 	else
 		memcpy(cmd+ofs, id, STM32_CODE_LEN);
 	ofs += STM32_CODE_LEN;	
-	cmd[ofs++] = ((long)ID_CODE >> 24) & 0xff;
-	cmd[ofs++] = ((long)ID_CODE >> 16) & 0xff;
-	cmd[ofs++] = ((long)ID_CODE >> 8) & 0xff;
-	cmd[ofs++] = ((long)ID_CODE >> 0) & 0xff;
+	read_info(ADDR_SN, cmd+ofs, 4);
+	//cmd[ofs++] = ((long)ID_CODE >> 24) & 0xff;
+	//cmd[ofs++] = ((long)ID_CODE >> 16) & 0xff;
+	//cmd[ofs++] = ((long)ID_CODE >> 8) & 0xff;
+	//cmd[ofs++] = ((long)ID_CODE >> 0) & 0xff;
 	if (id == NULL) {
 		cmd[ofs++] = (CMD_REG_CODE >> 8) & 0xff;
 		cmd[ofs++] = CMD_REG_CODE & 0xff;
@@ -241,9 +242,10 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 		cmd[ofs++] = DEVICE_TYPE;
 		cmd[ofs++] = (DEVICE_MODE>>8)&0xff;
 		cmd[ofs++] = DEVICE_MODE&0xff;
-		cmd[ofs++] = (DEVICE_TIME>>16)&0xff;
-		cmd[ofs++] = (DEVICE_TIME>>8)&0xff;
-		cmd[ofs++] = DEVICE_TIME&0xff;
+		read_info(ADDR_DATE, cmd+ofs, 3);
+		//cmd[ofs++] = (DEVICE_TIME>>16)&0xff;
+		//cmd[ofs++] = (DEVICE_TIME>>8)&0xff;
+		//cmd[ofs++] = DEVICE_TIME&0xff;
 	}
 	unsigned short bat = read_adc();
 	cmd[ofs++] = (bat >> 8) & 0xff;
@@ -274,10 +276,11 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	ofs = 5;
 	memcpy(cmd+ofs, stm32_id, STM32_CODE_LEN);	
 	ofs += STM32_CODE_LEN;
-	cmd[ofs++] = ((long)ID_CODE >> 24) & 0xff;
-	cmd[ofs++] = ((long)ID_CODE >> 16) & 0xff;
-	cmd[ofs++] = ((long)ID_CODE >> 8) & 0xff;
-	cmd[ofs++] = ((long)ID_CODE >> 0) & 0xff;
+	read_info(ADDR_DATE, cmd+ofs, 3);
+	//cmd[ofs++] = ((long)ID_CODE >> 24) & 0xff;
+	//cmd[ofs++] = ((long)ID_CODE >> 16) & 0xff;
+	//cmd[ofs++] = ((long)ID_CODE >> 8) & 0xff;
+	//cmd[ofs++] = ((long)ID_CODE >> 0) & 0xff;
 	cmd[ofs++] = (main_cmd >> 8) & 0xff;
 	cmd[ofs++] = main_cmd & 0xff;
 	cmd[ofs++] = sub_cmd;
@@ -340,11 +343,12 @@ void handle_cc1101_resp()
 		if (resp[4] != len -5)
 			return ;
 		/*check subdevice id = local device id*/
-		uint32_t id = resp[11];
-		id = (id << 8) + resp[12];
-		id = (id << 8) + resp[13];
-		id = (id << 8) + resp[14];
-		if (ID_CODE != id)
+		uint8_t id[4];
+		read_info(ADDR_SN, id, 4);
+		//id = (id << 8) + resp[12];
+		//id = (id << 8) + resp[13];
+		//id = (id << 8) + resp[14];
+		if (memcmp(id , resp+11, 4)!=0)
 			return ;
 		/*check stm32 id = saved stm32 id*/
 		if (memcmp(stm32_id , zero_id, STM32_CODE_LEN) !=0) {
