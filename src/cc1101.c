@@ -42,7 +42,7 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{FSCAL1,	0x00},
 	{FSCAL0,	0x1F},
 	{TEST0,		0x09},
-	{PATABLE,	0x60}
+	{PATABLE,	0xCB}
 };
 #define MRFI_RSSI_VALID_DELAY_US    1300
 void MRFI_RSSI_VALID_WAIT()                                                
