@@ -29,6 +29,9 @@
 #define RADIO_CHANNEL_NOT_CLR   0x88
 #define RADIO_CHANNEL_IS_CLR    0x89
 #define TX_BUF_SIZE 128
+#define ADDR_SN					4
+#define ADDR_DATE				1
+#define ADDR_DELAY				0
 typedef struct
 {
     uint16  addr;
@@ -43,4 +46,5 @@ int radio_receive_on(void);
 unsigned short CRC(unsigned char *Data,unsigned char Data_length);
 unsigned short read_adc();
 void radio_sleep();
+void read_info(char addr, unsigned char *buf, char len);
 #endif
