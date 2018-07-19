@@ -143,6 +143,7 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	memcpy(cmd+ofs, stm32_id, STM32_CODE_LEN);	
 	ofs += STM32_CODE_LEN;
 	read_info(ADDR_SN, cmd+ofs, 4);
+	ofs += 4;	
 	//cmd[ofs++] = ((long)ID_CODE >> 24) & 0xff;
 	//cmd[ofs++] = ((long)ID_CODE >> 16) & 0xff;
 	//cmd[ofs++] = ((long)ID_CODE >> 8) & 0xff;
@@ -167,6 +168,7 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	cmd[ofs++] = (DEVICE_MODE>>8)&0xff;
 	cmd[ofs++] = DEVICE_MODE&0xff;
 	read_info(ADDR_DATE, cmd+ofs, 3);
+	ofs += 3;	
 	//cmd[ofs++] = (DEVICE_TIME>>16)&0xff;
 	//cmd[ofs++] = (DEVICE_TIME>>8)&0xff;
 	//cmd[ofs++] = DEVICE_TIME&0xff;
@@ -248,10 +250,10 @@ void task()
 			LED_OUT |= LED_N_PIN;			
 			__delay_cycles(1000);
 			handle_cc1101_cmd(CMD_ALARM, 0x01);
-			__delay_cycles(100000);
-			handle_cc1101_cmd(CMD_ALARM, 0x01);
-			__delay_cycles(100000);
-			handle_cc1101_cmd(CMD_ALARM, 0x01);
+			//__delay_cycles(100000);
+			//handle_cc1101_cmd(CMD_ALARM, 0x01);
+			//__delay_cycles(100000);
+			//handle_cc1101_cmd(CMD_ALARM, 0x01);
 			radio_sleep();
 			LED_OUT &= ~LED_N_PIN;
 			DOOR_KEY_IFG &= ~DOOR_KEY_N_PIN;

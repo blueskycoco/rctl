@@ -117,6 +117,7 @@ unsigned char cc1101_addr = 0;
 #define USE_SMCLK 0
 int test_cnt = 0;
 int resend_cnt = 0;
+int timer_5s = 0;
 #define SECS_2	1
 #define MINS_5	150
 int g_cnt = SECS_2;
@@ -130,6 +131,7 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 		case 10:  
 			{
 					test_cnt++;
+					timer_5s++;
 					if (test_cnt >= g_cnt) {
 						test_cnt = 0;
 						key |= KEY_TIMER;
@@ -226,6 +228,7 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 		memcpy(cmd+ofs, id, STM32_CODE_LEN);
 	ofs += STM32_CODE_LEN;	
 	read_info(ADDR_SN, cmd+ofs, 4);
+	ofs += 4;	
 	//cmd[ofs++] = ((long)ID_CODE >> 24) & 0xff;
 	//cmd[ofs++] = ((long)ID_CODE >> 16) & 0xff;
 	//cmd[ofs++] = ((long)ID_CODE >> 8) & 0xff;
@@ -243,6 +246,7 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 		cmd[ofs++] = (DEVICE_MODE>>8)&0xff;
 		cmd[ofs++] = DEVICE_MODE&0xff;
 		read_info(ADDR_DATE, cmd+ofs, 3);
+		ofs += 3;	
 		//cmd[ofs++] = (DEVICE_TIME>>16)&0xff;
 		//cmd[ofs++] = (DEVICE_TIME>>8)&0xff;
 		//cmd[ofs++] = DEVICE_TIME&0xff;
@@ -276,7 +280,8 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	ofs = 5;
 	memcpy(cmd+ofs, stm32_id, STM32_CODE_LEN);	
 	ofs += STM32_CODE_LEN;
-	read_info(ADDR_DATE, cmd+ofs, 3);
+	read_info(ADDR_SN, cmd+ofs, 4);
+	ofs += 4;	
 	//cmd[ofs++] = ((long)ID_CODE >> 24) & 0xff;
 	//cmd[ofs++] = ((long)ID_CODE >> 16) & 0xff;
 	//cmd[ofs++] = ((long)ID_CODE >> 8) & 0xff;
@@ -564,7 +569,11 @@ void task()
 			if (g_state==STATE_PROTECT_ON) {
 				if (b_protection_state || !(LIGHT_IN & LIGHT_N_PIN)) {
 					//LED_OUT &= ~LED_N_PIN;
-					handle_cc1101_cmd(CMD_ALARM, 0x01);
+					if (timer_5s >= 3)
+					{						
+						handle_cc1101_cmd(CMD_ALARM, 0x01);
+						timer_5s = 0;
+					}
 				} else if(!b_protection_state) {
 					g_trigger = 1;
 				}
