@@ -225,7 +225,7 @@ void cca()
 }
 int radio_init(void)
 {
-
+	uint8_t id[4];
 	unsigned char i, writeByte, preferredSettings_length;
 	registerSetting_t *preferredSettings;
 
@@ -240,6 +240,8 @@ int radio_init(void)
 		trx8BitRegAccess(RADIO_WRITE_ACCESS, preferredSettings[i].addr, &writeByte, 1);
 	}
 	read_info(ADDR_DELAY, &g_delay, 1);
+	read_info(ADDR_SN, id, 4);
+	g_delay += id[3];
 	//create_seed();
 	return 0;
 }
