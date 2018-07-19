@@ -571,8 +571,8 @@ void task()
 					//LED_OUT &= ~LED_N_PIN;
 					if (timer_5s >= 3)
 					{						
-						handle_cc1101_cmd(CMD_ALARM, 0x01);
 						timer_5s = 0;
+						handle_cc1101_cmd(CMD_ALARM, 0x01);
 					}
 				} else if(!b_protection_state) {
 					g_trigger = 1;
