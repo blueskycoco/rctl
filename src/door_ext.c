@@ -79,12 +79,14 @@ unsigned char g_state = STATE_ASK_CC1101_ADDR;
 #define MIN_BAT		0x96
 unsigned char last_sub_cmd = 0x00; /*0x01 s1_alarm, 0x02 infrar_alarm, 0x04 low_power_alarm, 0x08 cur_status*/
 volatile unsigned char key = 0x0;
+volatile unsigned char door_lock = 0;
 unsigned char stm32_id[STM32_CODE_LEN] = {0};
 unsigned char zero_id[STM32_CODE_LEN] = {0};
 unsigned char cc1101_addr = 0;
 #define STM32_ADDR	0x01
 #define USE_SMCLK 0
 int test_cnt = 0;
+unsigned int timer_5s = 0;
 int resend_cnt = 0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
@@ -93,7 +95,8 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 		case  2:  break;
 		case  4:  break;
 		case 10:  
-			{
+			{					
+					timer_5s++;
 					#if USE_SMCLK
 					test_cnt++;
 					if (test_cnt == 150) {
@@ -113,6 +116,13 @@ void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 {  
 	if (S1_KEY_IFG & S1_KEY_N_PIN )
 	{
+		if (S1_KEY_IN & S1_KEY_N_PIN) {
+			if (door_lock == 0)
+				door_lock = 1;		
+		} else {
+			if (door_lock ==1)
+				door_lock = 0;
+		}
 		key |= KEY_S1;
 		S1_KEY_IE  &= ~S1_KEY_N_PIN;
 	}
@@ -237,7 +247,10 @@ void task()
 		if (key & KEY_S1) {
 			key &= ~KEY_S1;
 			/*send s1 alarm to stm32*/
-			handle_cc1101_cmd(CMD_ALARM, 0x02);
+			if (door_lock) 
+				handle_cc1101_cmd(CMD_ALARM, 0x02);
+			else
+				handle_cc1101_cmd(CMD_ALARM, 0x03);
 			radio_sleep();
 			S1_KEY_IFG &= ~S1_KEY_N_PIN;
 			S1_KEY_IE  |= S1_KEY_N_PIN;
@@ -247,15 +260,19 @@ void task()
 			key &= ~KEY_DOOR;
 			/*send infrar alarm to stm32*/
 			//add int count then make decision
-			LED_OUT |= LED_N_PIN;			
-			__delay_cycles(1000);
-			handle_cc1101_cmd(CMD_ALARM, 0x01);
+			if (timer_5s >= 3)
+			{						
+				timer_5s = 0;
+				LED_OUT |= LED_N_PIN;			
+				__delay_cycles(1000);
+				handle_cc1101_cmd(CMD_ALARM, 0x01);
 			//__delay_cycles(100000);
 			//handle_cc1101_cmd(CMD_ALARM, 0x01);
 			//__delay_cycles(100000);
 			//handle_cc1101_cmd(CMD_ALARM, 0x01);
-			radio_sleep();
-			LED_OUT &= ~LED_N_PIN;
+				radio_sleep();
+				LED_OUT &= ~LED_N_PIN;
+			}
 			DOOR_KEY_IFG &= ~DOOR_KEY_N_PIN;
 			DOOR_KEY_IE |= DOOR_KEY_N_PIN;
 		}

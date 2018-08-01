@@ -117,7 +117,8 @@ unsigned char cc1101_addr = 0;
 #define USE_SMCLK 0
 int test_cnt = 0;
 int resend_cnt = 0;
-int timer_5s = 0;
+unsigned int timer_5s = 0;
+volatile unsigned char door_lock = 0;
 #define SECS_2	1
 #define MINS_5	150
 int g_cnt = SECS_2;
@@ -155,6 +156,13 @@ void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 	
 	if (S1_KEY_IFG & S1_KEY_N_PIN )
 	{
+		if (S1_KEY_IN & S1_KEY_N_PIN) {
+			if (door_lock == 0)
+				door_lock = 1;		
+		} else {
+			if (door_lock ==1)
+				door_lock = 0;
+		}
 		key |= KEY_S1;
 		S1_KEY_IE  &= ~S1_KEY_N_PIN;
 	}
@@ -293,7 +301,7 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	if (main_cmd == CMD_ALARM) {
 		if (sub_cmd == 0x01)
 			last_sub_cmd |= 0x02;
-		else if(sub_cmd == 0x02)
+		else if(sub_cmd == 0x02 || sub_cmd == 0x03)
 			last_sub_cmd |= 0x01;
 	} else if (main_cmd == CMD_LOW_POWER) {
 		last_sub_cmd |= 0x04;
@@ -311,9 +319,9 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	__delay_cycles(100000);
 	LED_OUT &= ~LED_N_PIN;
 	__delay_cycles(100000);
-	LED_OUT |= LED_N_PIN;
-	__delay_cycles(100000);
-	LED_OUT &= ~LED_N_PIN;
+	//LED_OUT |= LED_N_PIN;
+	//__delay_cycles(100000);
+	//LED_OUT &= ~LED_N_PIN;
 	radio_send(cmd, ofs);
 	g_cnt = SECS_2;
 	P2IE  |= BIT0;
@@ -395,6 +403,7 @@ void handle_cc1101_resp()
 					last_sub_cmd &= ~0x02;
 					break;
 				case 0x02:
+				case 0x03:
 					last_sub_cmd &= ~0x01;
 					break;
 				default:
@@ -550,8 +559,12 @@ void task()
 
 		if (key & KEY_S1) {
 			key &= ~KEY_S1;
+			if (door_lock) 
+				handle_cc1101_cmd(CMD_ALARM, 0x02);
+			else
+				handle_cc1101_cmd(CMD_ALARM, 0x03);
 			/*send s1 alarm to stm32*/
-			handle_cc1101_cmd(CMD_ALARM, 0x02);
+			//handle_cc1101_cmd(CMD_ALARM, 0x02);
 			S1_KEY_IFG &= ~S1_KEY_N_PIN;
 			S1_KEY_IE  |= S1_KEY_N_PIN;
 		}
