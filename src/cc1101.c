@@ -343,6 +343,9 @@ unsigned short read_adc()
 {
 	static volatile int adc[10] = {0};
 	int total_adc = 0,i = 0;
+	uint8_t ctl1,ctl0;
+	ctl0 = ADC10CTL0;
+	ctl1 = ADC10CTL1;
 	ADC10CTL0 &= ~ENC;
 	ADC10CTL1 = CONSEQ_2 + INCH_0;						// Repeat single channel, A0
 	ADC10CTL0 = ADC10SHT_2 +MSC + ADC10ON + ADC10IE + REFON + SREF_1;	// Sample & Hold Time + ADC10 ON + Interrupt Enable
@@ -355,7 +358,11 @@ unsigned short read_adc()
     __bis_SR_register(CPUOFF + GIE);// Low Power Mode 0, ADC10_ISR
     for (i=0; i<10; i++)
 		total_adc += adc[i];
-	ADC10CTL0 &= ~ENC;
+	//ADC10CTL0 &= ~SREF_1;
+	ADC10CTL0 &= ~(ENC + ADC10SC);
+	ADC10CTL0 = ctl0;
+	ADC10CTL1 = ctl1;
+	//ADC10CTL0 &= ~ENC;
 	return (unsigned short)(total_adc/10);
 }
 void read_info(char addr, unsigned char *buf, char len)
