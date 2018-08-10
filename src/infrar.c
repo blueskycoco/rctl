@@ -106,7 +106,7 @@
 #define STATE_PROTECT_ON			2
 #define STATE_PROTECT_OFF			3
 unsigned char g_state = STATE_ASK_CC1101_ADDR;
-#define MIN_BAT		0x96
+#define MIN_BAT		486
 unsigned char b_protection_state = 1;	/*protection state*/
 unsigned char last_sub_cmd = 0x00; /*0x01 s1_alarm, 0x02 infrar_alarm, 0x04 low_power_alarm, 0x08 cur_status*/
 volatile unsigned char key = 0x0;
@@ -122,6 +122,7 @@ volatile unsigned char door_lock = 0;
 #define SECS_2	1
 #define MINS_5	150
 int g_cnt = SECS_2;
+uint32_t low_power_cnt = 0;
 uint8_t g_trigger = 0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
@@ -133,6 +134,7 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 			{
 					test_cnt++;
 					timer_5s++;
+					low_power_cnt++;
 					if (test_cnt >= g_cnt) {
 						test_cnt = 0;
 						key |= KEY_TIMER;
@@ -476,9 +478,12 @@ void handle_timer()
 		g_trigger = 0;
 		handle_cc1101_cmd(CMD_ALARM,0x01);
 	}
-	//unsigned short bat = read_adc();
-	//if (bat < MIN_BAT)
-	//	handle_cc1101_cmd(CMD_LOW_POWER,0x00);
+	if (low_power_cnt >= 150) {
+		unsigned short bat = read_adc();
+		low_power_cnt = 0;
+		if (bat <= MIN_BAT)
+			handle_cc1101_cmd(CMD_LOW_POWER,0x00);
+	}
 }
 void task()
 {
