@@ -88,6 +88,8 @@ unsigned char cc1101_addr = 0;
 int test_cnt = 0;
 unsigned int timer_5s = 0;
 int resend_cnt = 0;
+uint32_t low_power_cnt = 0;
+uint32_t heart_cnt = 0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
 	switch( TA0IV )	
@@ -97,6 +99,8 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 		case 10:  
 			{					
 					timer_5s++;
+					heart_cnt++;
+					low_power_cnt++;
 					#if USE_SMCLK
 					test_cnt++;
 					if (test_cnt == 150) {
@@ -194,6 +198,17 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 
 void handle_timer()
 {
+	if (low_power_cnt >= 21600) {
+		unsigned short bat = read_adc();
+		low_power_cnt = 0;
+		if (bat <= MIN_BAT)
+			handle_cc1101_cmd(CMD_LOW_POWER,0x00);
+	}
+
+	if (heart_cnt >= 150) {
+		heart_cnt = 0;
+		handle_cc1101_cmd(CMD_CUR_STATUS,0x00);	
+	}
 }
 void task()
 {

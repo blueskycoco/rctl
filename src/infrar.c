@@ -123,6 +123,7 @@ volatile unsigned char door_lock = 0;
 #define MINS_5	150
 int g_cnt = SECS_2;
 uint32_t low_power_cnt = 0;
+uint32_t heart_cnt = 0;
 uint8_t g_trigger = 0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
@@ -134,6 +135,7 @@ void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 			{
 					test_cnt++;
 					timer_5s++;
+					heart_cnt++;
 					low_power_cnt++;
 					if (test_cnt >= g_cnt) {
 						test_cnt = 0;
@@ -478,11 +480,16 @@ void handle_timer()
 		g_trigger = 0;
 		handle_cc1101_cmd(CMD_ALARM,0x01);
 	}
-	if (low_power_cnt >= 150) {
+	if (low_power_cnt >= 21600) {
 		unsigned short bat = read_adc();
 		low_power_cnt = 0;
 		if (bat <= MIN_BAT)
 			handle_cc1101_cmd(CMD_LOW_POWER,0x00);
+	}
+
+	if (heart_cnt >= 150) {
+		heart_cnt = 0;
+		handle_cc1101_cmd(CMD_CUR_STATUS,0x00);	
 	}
 }
 void task()
