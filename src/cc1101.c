@@ -17,15 +17,15 @@ const registerSetting_t preferredSettings_1200bps[]=
 	{FSCTRL1,	0x06},
 	{ADDR, 		0x00},
 	{PKTCTRL1,	0x06},
-	#if 0
+#if 0
 	{FREQ2,		0x10},
 	{FREQ1,		0xa7},
 	{FREQ0,		0x62},
-	#else
+#else
 	{FREQ2,		0x10},
 	{FREQ1,		0xaa},
 	{FREQ0,		0x1e},
-	#endif
+#endif
 	{MDMCFG4,	0xf5},
 	{MDMCFG3,	0x83},
 	{MDMCFG2,	0x13},
@@ -46,24 +46,24 @@ const registerSetting_t preferredSettings_1200bps[]=
 #define MRFI_RSSI_VALID_DELAY_US    1300
 void MRFI_RSSI_VALID_WAIT()                                                
 {                                                                             
-  int16_t delay = MRFI_RSSI_VALID_DELAY_US;                                   
-  unsigned char status;															
-  do                                                                          
-  {	
-  	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, PKTSTATUS, &status, 1); 
-    if(status & (0x50))
-    {
-      break;                                                                  
-    }
-    __delay_cycles(64);
-    delay -= 64;                                                              
-  }while(delay > 0);
+	int16_t delay = MRFI_RSSI_VALID_DELAY_US;                                   
+	unsigned char status;															
+	do                                                                          
+	{	
+		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, PKTSTATUS, &status, 1); 
+		if(status & (0x50))
+		{
+			break;                                                                  
+		}
+		__delay_cycles(64);
+		delay -= 64;                                                              
+	}while(delay > 0);
 }        
 
 void MRFI_STROBE_IDLE_AND_WAIT()                   
 {													  
-  trxSpiCmdStrobe( RF_SIDLE );						  
-  while (trxSpiCmdStrobe( RF_SNOP ) & 0xF0) ; 		  
+	trxSpiCmdStrobe( RF_SIDLE );						  
+	while (trxSpiCmdStrobe( RF_SNOP ) & 0xF0) ; 		  
 }
 
 static uint8_t mrfiRndSeed=0;
@@ -80,23 +80,23 @@ static uint16_t sBackoffHelper=0;
 
 int8_t Mrfi_CalculateRssi(uint8_t rawValue)
 {
-  int16_t rssi;
+	int16_t rssi;
 
-  if(rawValue >= 128)
-  {
-    rssi = (int16_t)(rawValue - 256)/2 - MRFI_RSSI_OFFSET;
-  }
-  else
-  {
-    rssi = (rawValue/2) - MRFI_RSSI_OFFSET;
-  }
+	if(rawValue >= 128)
+	{
+		rssi = (int16_t)(rawValue - 256)/2 - MRFI_RSSI_OFFSET;
+	}
+	else
+	{
+		rssi = (rawValue/2) - MRFI_RSSI_OFFSET;
+	}
 
-  if(rssi < -128)
-  {
-    rssi = -128;
-  }
+	if(rssi < -128)
+	{
+		rssi = -128;
+	}
 
-  return rssi;
+	return rssi;
 }
 
 void create_seed()
@@ -118,7 +118,7 @@ void create_seed()
 	MRFI_STROBE_IDLE_AND_WAIT();
 	trxSpiCmdStrobe( RF_SFRX );
 	RF_GDO_PxIFG &= ~RF_GDO_PIN;
-	
+
 	mantissa = 256 + VAL_MDMCFG3;
 
 	exponent = 28 - (VAL_MDMCFG4 & 0x0F);
@@ -133,39 +133,39 @@ void create_seed()
 }
 uint8_t MRFI_RandomByte(void)
 {
-  mrfiRndSeed = (mrfiRndSeed*MRFI_RANDOM_MULTIPLIER) + MRFI_RANDOM_OFFSET;
+	mrfiRndSeed = (mrfiRndSeed*MRFI_RANDOM_MULTIPLIER) + MRFI_RANDOM_OFFSET;
 
-  return mrfiRndSeed;
+	return mrfiRndSeed;
 }
 
 /*static void Mrfi_RandomBackoffDelay(void)
-{
+  {
   uint8_t backoffs;
   uint8_t i;
 
   backoffs = (MRFI_RandomByte() & 0x0F) + 1;
   for (i=0; i<backoffs*sBackoffHelper; i++)
   {
-    __delay_cycles( 1 );
+  __delay_cycles( 1 );
   }
-}*/
+  }*/
 void Mrfi_RxModeOff(void)
 {
-  RF_GDO_PxIE	&= ~RF_GDO_PIN;
+	RF_GDO_PxIE	&= ~RF_GDO_PIN;
 
-  MRFI_STROBE_IDLE_AND_WAIT();
+	MRFI_STROBE_IDLE_AND_WAIT();
 
-  trxSpiCmdStrobe( RF_SFRX );
+	trxSpiCmdStrobe( RF_SFRX );
 
-  RF_GDO_PxIFG	&= ~RF_GDO_PIN;
+	RF_GDO_PxIFG	&= ~RF_GDO_PIN;
 }
 static void Mrfi_RxModeOn(void)
 {
-  RF_GDO_PxIFG	&= ~RF_GDO_PIN;
+	RF_GDO_PxIFG	&= ~RF_GDO_PIN;
 
-  trxSpiCmdStrobe( RF_SRX );
+	trxSpiCmdStrobe( RF_SRX );
 
- RF_GDO_PxIE	|= RF_GDO_PIN;
+	RF_GDO_PxIE	|= RF_GDO_PIN;
 }
 
 void cca()
@@ -178,7 +178,7 @@ void cca()
 		trxSpiCmdStrobe( RF_SRX );
 
 		MRFI_RSSI_VALID_WAIT();
-		
+
 		RF_GDO0_PxIFG	&= ~RF_GDO0_PIN;
 		trxSpiCmdStrobe( RF_STX );
 
@@ -231,18 +231,18 @@ int radio_init(void)
 }
 int radio_send(unsigned char *payload, unsigned short payload_len) {
 
-	#ifndef HAND
+#ifndef HAND
 	Mrfi_RxModeOff();
-	#endif
+#endif
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_SINGLE_ACCESS, TXFIFO, (unsigned char *)&payload_len, 1);
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
-	#ifndef HAND
+#ifndef HAND
 	cca();
-	#else
+#else
 	trxSpiCmdStrobe(RF_STX);
 	//while (!(RF_GDO0_IN & RF_GDO0_PIN));
 	//while ((RF_GDO0_IN & RF_GDO0_PIN));
-	#endif
+#endif
 	return(0);
 }
 int radio_read(unsigned char *buf, unsigned short *buf_len) {
@@ -251,13 +251,13 @@ int radio_read(unsigned char *buf, unsigned short *buf_len) {
 	//trxSpiCmdStrobe(RF_SRX);
 	//while(!(RF_GDO_IN & RF_GDO_PIN));	
 	while((RF_GDO_IN & RF_GDO_PIN));
-	
+
 	trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXBYTES, &pktLen, 1);
 	pktLen = pktLen  & NUM_RXBYTES;
 
 	if (pktLen > 0)
 		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_SINGLE_ACCESS, RXFIFO, &pktLen, 1);
-	
+
 	if ((pktLen > 0) && (pktLen <= *buf_len)) {
 		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, buf, pktLen);
 
@@ -319,9 +319,9 @@ unsigned short CRC(unsigned char *Data,unsigned char Data_length)
 }
 void __attribute__ ((interrupt(ADC10_VECTOR))) ADC10_ISR (void)
 {
-  __bic_SR_register_on_exit(CPUOFF);        // Clear CPUOFF bit from 0(SR)
+	__bic_SR_register_on_exit(CPUOFF);        // Clear CPUOFF bit from 0(SR)
 }
-unsigned short read_adc()
+unsigned short read_adc1()
 {
 	static volatile int adc[10] = {0};
 	int total_adc = 0,i = 0;
@@ -331,13 +331,36 @@ unsigned short read_adc()
 	ADC10DTC1 = 0x0A;									// 10 conversions
 	ADC10AE0 |= 0x01;									// P1.0 ADC option select
 	//ADC10CTL0 &= ~ENC;				// Disable Conversion
-    while (ADC10CTL1 & BUSY);		// Wait if ADC10 busy
-    ADC10SA = (int)adc;				// Transfers data to next array (DTC auto increments address)
-    ADC10CTL0 |= ENC + ADC10SC;		// Enable Conversion and conversion start
-    __bis_SR_register(CPUOFF + GIE);// Low Power Mode 0, ADC10_ISR
-    for (i=0; i<10; i++)
+	while (ADC10CTL1 & BUSY);		// Wait if ADC10 busy
+	ADC10SA = (int)adc;				// Transfers data to next array (DTC auto increments address)
+	ADC10CTL0 |= ENC + ADC10SC;		// Enable Conversion and conversion start
+	__bis_SR_register(CPUOFF + GIE);// Low Power Mode 0, ADC10_ISR
+	for (i=0; i<10; i++)
 		total_adc += adc[i];
 	ADC10CTL0 &= ~ENC;
+	return (unsigned short)(total_adc/10);
+}
+unsigned short read_adc()
+{
+	static volatile int adc[10] = {0};
+	int total_adc = 0,i = 0;
+	uint8_t ctl1,ctl0;
+	ctl0 = ADC10CTL0;
+	ctl1 = ADC10CTL1;
+	ADC10CTL0 &= ~ENC;
+	ADC10CTL1 = CONSEQ_2 + INCH_0;	
+	ADC10CTL0 = ADC10SHT_2 +MSC + ADC10ON + ADC10IE + REFON + SREF_1;
+	ADC10DTC1 = 0x0A;						
+	ADC10AE0 |= 0x01;
+	while (ADC10CTL1 & BUSY);		
+	ADC10SA = (int)adc;				
+	ADC10CTL0 |= ENC + ADC10SC;		
+	__bis_SR_register(CPUOFF + GIE);
+	for (i=0; i<10; i++)
+		total_adc += adc[i];
+	ADC10CTL0 &= ~(ENC + ADC10SC);
+	ADC10CTL0 = ctl0;
+	ADC10CTL1 = ctl1;
 	return (unsigned short)(total_adc/10);
 }
 void read_info(char addr, unsigned char *buf, char len)
