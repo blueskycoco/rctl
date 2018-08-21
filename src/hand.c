@@ -81,10 +81,10 @@ void task()
 	POWER_OUT |= POWER_N_PIN;
 	LED_SEL &= ~LED_N_PIN;
 	LED_SEL &= ~LED_N_PIN2;
+	LED_OUT |= LED_N_PIN;
+	LED_OUT |= LED_N_PIN2;
 	LED_DIR |= LED_N_PIN;
 	LED_DIR |= LED_N_PIN2;
-	LED_OUT &= ~LED_N_PIN;
-	LED_OUT |= LED_N_PIN2;
 	KEY_SEL &= ~KEY_N_PIN0;
 	KEY_DIR &= ~KEY_N_PIN0;
 	KEY_SEL &= ~KEY_N_PIN1;
@@ -143,7 +143,7 @@ void task()
 	//cmd[22] = DEVICE_TIME&0xff;
 	read_info(ADDR_DATE, cmd+20, 3);
 	unsigned short bat = read_adc();
-	if (bat < 486) {
+	if (bat > 486) {
 		LED_OUT |= LED_N_PIN;
 		LED_OUT |= LED_N_PIN2;
 	} else {
@@ -176,7 +176,7 @@ void task()
 	radio_send(cmd, cmd_len);
 	__delay_cycles(300000);
 	}
-	if (bat < 486) {
+	if (bat > 486) {
 		LED_OUT &= ~LED_N_PIN;
 	} else {
 		LED_OUT |= LED_N_PIN2;
