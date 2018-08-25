@@ -125,7 +125,6 @@ int g_cnt = SECS_2;
 uint32_t low_power_cnt = 0;
 uint32_t heart_cnt = 0;
 uint8_t g_trigger = 0;
-uint8_t coded = 0;
 void __attribute__ ((interrupt(TIMER0_A1_VECTOR))) Timer_A (void)
 {  	
 	switch( TA0IV )	
@@ -488,14 +487,9 @@ void handle_timer()
 			handle_cc1101_cmd(CMD_LOW_POWER,0x00);
 	}
 
-	if (heart_cnt >= 150/*10800*/) {
+	if (heart_cnt >= 10800) {
 		heart_cnt = 0;
 		handle_cc1101_cmd(CMD_CUR_STATUS,0x00);	
-		if (coded) {
-			coded = 0;
-			b_protection_state = 0;
-			switch_protect(0);
-		}
 	}
 }
 void task()
@@ -573,9 +567,6 @@ void task()
 			handle_cc1101_addr(NULL,0);
 			CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
 			CODE_KEY_IE |= CODE_KEY_N_PIN;
-			coded = 1;
-			b_protection_state = 1;
-			switch_protect(1);
 		}
 
 		if (key & KEY_S1) {

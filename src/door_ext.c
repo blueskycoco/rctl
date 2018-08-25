@@ -205,7 +205,7 @@ void handle_timer()
 			handle_cc1101_cmd(CMD_LOW_POWER,0x00);
 	}
 
-	if (heart_cnt >= 150) {
+	if (heart_cnt >= 10800) {
 		heart_cnt = 0;
 		handle_cc1101_cmd(CMD_CUR_STATUS,0x00);	
 	}
