@@ -79,12 +79,12 @@ void task()
 	POWER_SEL &= ~POWER_N_PIN;
 	POWER_DIR |= POWER_N_PIN;
 	POWER_OUT |= POWER_N_PIN;
-	LED_SEL &= ~LED_N_PIN;
-	LED_SEL &= ~LED_N_PIN2;
-	LED_OUT |= LED_N_PIN;
-	LED_OUT |= LED_N_PIN2;
 	LED_DIR |= LED_N_PIN;
 	LED_DIR |= LED_N_PIN2;
+	LED_SEL &= ~LED_N_PIN;
+	LED_SEL &= ~LED_N_PIN2;
+	LED_OUT &= ~LED_N_PIN;
+	LED_OUT |= LED_N_PIN2;
 	KEY_SEL &= ~KEY_N_PIN0;
 	KEY_DIR &= ~KEY_N_PIN0;
 	KEY_SEL &= ~KEY_N_PIN1;
@@ -145,9 +145,7 @@ void task()
 	unsigned short bat = read_adc();
 	if (bat > 486) {
 		LED_OUT |= LED_N_PIN;
-		LED_OUT |= LED_N_PIN2;
 	} else {
-		LED_OUT &= ~LED_N_PIN;
 		LED_OUT &= ~LED_N_PIN2;
 	}
 	cmd[23] = (bat >> 8) & 0xff;
