@@ -30,7 +30,7 @@
 #define LED_OUT         P2OUT
 #define LED_DIR         P2DIR
 #define LED_N_PIN       BIT4
-#define LED_N_PIN2       BIT5
+#define LED_N_PIN2      BIT5
 #define KEY_SEL         P1SEL
 #define KEY_IN          P1IN
 #define KEY_DIR         P1DIR
@@ -79,12 +79,14 @@ void task()
 	POWER_SEL &= ~POWER_N_PIN;
 	POWER_DIR |= POWER_N_PIN;
 	POWER_OUT |= POWER_N_PIN;
+
 	LED_DIR |= LED_N_PIN;
 	LED_DIR |= LED_N_PIN2;
 	LED_SEL &= ~LED_N_PIN;
 	LED_SEL &= ~LED_N_PIN2;
-	LED_OUT &= ~LED_N_PIN;
-	LED_OUT |= LED_N_PIN2;
+	LED_OUT &= ~LED_N_PIN;   //关闭蓝灯
+	LED_OUT |= LED_N_PIN2;   //关闭红灯
+	
 	KEY_SEL &= ~KEY_N_PIN0;
 	KEY_DIR &= ~KEY_N_PIN0;
 	KEY_SEL &= ~KEY_N_PIN1;
@@ -98,9 +100,12 @@ void task()
 		key = 0x02;
 	if (!(KEY_IN & KEY_N_PIN2))
 		key = 0x04;
-
+	__delay_cycles(10000);//延时，滤除误碰
 	if (key != 0x01 && key != 0x02 && key != 0x04)
 	{
+		LED_OUT |= LED_N_PIN;		//亮粉灯
+		LED_OUT &= ~LED_N_PIN2;
+		__delay_cycles(50000);
 		POWER_OUT &= ~POWER_N_PIN;
 		return ;
 	}
@@ -119,7 +124,17 @@ void task()
 			key = 0x08;
 		TACTL = MC_0;
 	} else 
-		__delay_cycles(300000);
+	{
+		__delay_cycles(150000);
+	}
+
+	unsigned short bat =  read_adc();
+	if (bat > 840) {
+		LED_OUT |= (LED_N_PIN + LED_N_PIN2);           //打开蓝灯\关闭红灯
+	}
+	else {
+		LED_OUT &= ~(LED_N_PIN + LED_N_PIN2);       	//关闭蓝灯\打开红灯
+	}
 
 /* msp430 -> stm32
   * 0x01 0x00 MSG_HEAD0 MSG_HEAD1 LEN STM32_ID SUB_ID CMD TYPE MODEL TIME BAT CRC
@@ -142,12 +157,6 @@ void task()
 	//cmd[21] = (DEVICE_TIME>>8)&0xff;
 	//cmd[22] = DEVICE_TIME&0xff;
 	read_info(ADDR_DATE, cmd+20, 3);
-	unsigned short bat = read_adc();
-	if (bat > 486) {
-		LED_OUT |= LED_N_PIN;
-	} else {
-		LED_OUT &= ~LED_N_PIN2;
-	}
 	cmd[23] = (bat >> 8) & 0xff;
 	cmd[24] = (bat) & 0xff;
 	if (key == 0x01)
@@ -161,24 +170,16 @@ void task()
 	unsigned short crc = CRC(cmd, PACKAGE_LEN - 2);
 	cmd[25] = (crc >> 8) & 0xff;
 	cmd[26] = (crc) & 0xff;
-#if 0
-	if (bat < 486) {
-		LED_OUT |= LED_N_PIN;
-	} else {
-		LED_OUT &= ~LED_N_PIN2;
-	}
-#endif
-	//radio_init();
+
+	__delay_cycles(100000);
+	LED_OUT &= ~LED_N_PIN;       //关闭蓝灯
+	LED_OUT |= LED_N_PIN2;       //关闭红灯
+	
 	for (i=0;i<1;i++) {
-	//memset(cmd, 0x36, cmd_len);
 	radio_send(cmd, cmd_len);
 	__delay_cycles(300000);
 	}
-	if (bat > 486) {
-		LED_OUT &= ~LED_N_PIN;
-	} else {
-		LED_OUT |= LED_N_PIN2;
-	}
+	
 	POWER_OUT &= ~POWER_N_PIN;
 	return ;
 }

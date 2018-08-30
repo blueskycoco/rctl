@@ -1,4 +1,4 @@
-#include <msp430g2553.h>
+#include <msp430g2452.h>
 #include <stdint.h>
 #include "spi.h"
 #include "cc1101.h"
@@ -29,12 +29,12 @@ void trxRfSpiInterfaceInit(uint8 prescalerValue)
 	RF_GDO0_DIR &= ~RF_GDO0_PIN;
 	RF_GDO0_PxIES	|= RF_GDO0_PIN;
 	
-	RF_POWER_N_PORT_SEL &= ~RF_POWER_N_PIN;
-	RF_POWER_N_PORT_DIR |= RF_POWER_N_PIN;
-	RF_POWER_N_PORT_OUT |= RF_POWER_N_PIN;
-	__delay_cycles(1000);
-	RF_POWER_N_PORT_OUT &= ~RF_POWER_N_PIN;
-	__delay_cycles(1000);
+//	RF_POWER_N_PORT_SEL &= ~RF_POWER_N_PIN;
+//	RF_POWER_N_PORT_DIR |= RF_POWER_N_PIN;
+//	RF_POWER_N_PORT_OUT |= RF_POWER_N_PIN;
+//	__delay_cycles(1000);
+//	RF_POWER_N_PORT_OUT &= ~RF_POWER_N_PIN;
+//	__delay_cycles(1000);
 	return;
 }
 void mosi(int type)
