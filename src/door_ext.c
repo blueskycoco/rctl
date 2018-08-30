@@ -76,7 +76,7 @@
 #define STATE_PROTECT_ON			2
 #define STATE_PROTECT_OFF			3
 unsigned char g_state = STATE_ASK_CC1101_ADDR;
-#define MIN_BAT		0x96
+#define MIN_BAT		640
 unsigned char last_sub_cmd = 0x00; /*0x01 s1_alarm, 0x02 infrar_alarm, 0x04 low_power_alarm, 0x08 cur_status*/
 volatile unsigned char key = 0x0;
 volatile unsigned char door_lock = 0;
@@ -198,16 +198,16 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 
 void handle_timer()
 {
-	if (low_power_cnt >= 21600) {
-		unsigned short bat = read_adc();
-		low_power_cnt = 0;
-		if (bat <= MIN_BAT)
-			handle_cc1101_cmd(CMD_LOW_POWER,0x00);
-	}
 
 	if (heart_cnt >= 10800) {
 		heart_cnt = 0;
 		handle_cc1101_cmd(CMD_CUR_STATUS,0x00);	
+	}
+	if (low_power_cnt >= 10800) {
+		unsigned short bat = read_adc();
+		low_power_cnt = 0;
+		if (bat <= MIN_BAT)
+			handle_cc1101_cmd(CMD_LOW_POWER,0x00);
 	}
 }
 void task()
