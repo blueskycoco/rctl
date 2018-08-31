@@ -198,16 +198,19 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 
 void handle_timer()
 {
-
-	if (heart_cnt >= 10800) {
-		heart_cnt = 0;
-		handle_cc1101_cmd(CMD_CUR_STATUS,0x00);	
-	}
-	if (low_power_cnt >= 10800) {
+	if (low_power_cnt >= 75/*10800*/) {
 		unsigned short bat = read_adc();
 		low_power_cnt = 0;
 		if (bat <= MIN_BAT)
+		{
 			handle_cc1101_cmd(CMD_LOW_POWER,0x00);
+			radio_sleep();
+		}
+	}
+	if (heart_cnt >= 75/*10800*/) {
+		heart_cnt = 0;
+		handle_cc1101_cmd(CMD_CUR_STATUS,0x00);	
+		radio_sleep();
 	}
 }
 void task()
