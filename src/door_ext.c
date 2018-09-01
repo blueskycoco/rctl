@@ -198,7 +198,7 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 
 void handle_timer()
 {
-	if (low_power_cnt >= 75/*10800*/) {
+	if (low_power_cnt >= 10800) {
 		unsigned short bat = read_adc();
 		low_power_cnt = 0;
 		if (bat <= MIN_BAT)
@@ -207,7 +207,7 @@ void handle_timer()
 			radio_sleep();
 		}
 	}
-	if (heart_cnt >= 75/*10800*/) {
+	if (heart_cnt >= 10810) {
 		heart_cnt = 0;
 		handle_cc1101_cmd(CMD_CUR_STATUS,0x00);	
 		radio_sleep();
@@ -243,7 +243,7 @@ void task()
 	CCR0 = 32768;
 	TACTL = TASSEL_2 + MC_1 + TAIE;
 	#else
-	TACTL = TASSEL_1 + MC_2 + TAIE + ID0;
+	TACTL = TASSEL_1 + MC_2 + TAIE;// + ID0;
 	#endif
 	P2IE  &= ~BIT0;
 	radio_init();
