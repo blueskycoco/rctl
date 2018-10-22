@@ -32,6 +32,9 @@
 #define ADDR_SN					4
 #define ADDR_DATE				1
 #define ADDR_DELAY				0
+#define ADDR_STM32_ID			8
+#define ADDR_CC1101				14
+
 typedef struct
 {
     uint16  addr;
@@ -47,4 +50,5 @@ unsigned short CRC(unsigned char *Data,unsigned char Data_length);
 unsigned short read_adc();
 void radio_sleep();
 void read_info(char addr, unsigned char *buf, char len);
+void write_info(char addr, unsigned char *buf, char len);
 #endif

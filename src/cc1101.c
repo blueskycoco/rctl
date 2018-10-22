@@ -369,3 +369,22 @@ void read_info(char addr, unsigned char *buf, char len)
 {
 	memcpy(buf, (const void *)(0x01000+addr), len);
 }
+void write_info(char addr, unsigned char *buf, char len)
+{
+	int i;
+	char ori_buf[64] = {0};
+	char *flash_ptr = (char *)(0x01000); 
+	memcpy(ori_buf, (const void *)(0x01000), 64);
+	memcpy(ori_buf+addr, buf, len);
+
+	FCTL1 = FWKEY + ERASE;
+	FCTL3 = FWKEY;
+	*flash_ptr = 0;
+
+	FCTL1 = FWKEY + WRT;
+	for(i=0; i<64; i++)
+		*(flash_ptr++) = ori_buf[i];
+
+	FCTL1 = FWKEY;
+	FCTL3 = FWKEY + LOCK;
+}

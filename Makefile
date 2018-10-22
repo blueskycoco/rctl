@@ -14,10 +14,10 @@ SOURCES += main.c spi.c cc1101.c door_ext.c
 CFLAGS += -DHAND
 endif
 ifeq ($(APPNAME), infrar)
-SOURCES += main.c spi.c cc1101.c infrar.c
+SOURCES += main.c spi.c cc1101.c infrar_ext.c
 endif
 ifeq ($(APPNAME), infrar_old)
-SOURCES += main.c spi.c cc1101.c infrar.c
+SOURCES += main.c spi.c cc1101.c infrar_ext.c
 CFLAGS += -DSW_SPI
 endif
 VPATH = ./src
