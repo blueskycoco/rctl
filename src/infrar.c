@@ -382,6 +382,7 @@ void handle_cc1101_resp()
 	switch (cmd_type) {
 		case CMD_REG_CODE_ACK:	
 			if (resp[len+2] != 0x00 && cc1101_addr == 0) {/*if get vaild addr && curr addr ==0*/
+				LED_OUT &= ~LED_N_PIN;
 				memcpy(stm32_id, resp+5, STM32_CODE_LEN);
 				cc1101_addr = resp[18];
 				unsigned char pkt = 0x05;
@@ -560,6 +561,7 @@ void task()
 
 		if (key & KEY_CODE) {
 			key &= ~KEY_CODE;
+			LED_OUT |= LED_N_PIN;
 			/*send machine code to stm32*/
 			memset(stm32_id, 0, STM32_CODE_LEN);
 			cc1101_addr = 0x0;			

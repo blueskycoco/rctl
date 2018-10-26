@@ -1,5 +1,6 @@
 #include <msp430g2553.h>
 #include <stdint.h>
+#include <string.h>
 #include "spi.h"
 #include "cc1101_def.h"
 #include "cc1101.h"
@@ -173,7 +174,7 @@ static void Mrfi_RxModeOn(void)
 void cca()
 {
 	uint32_t ccaRetries = 400;
-	uint8_t i;
+	//uint8_t i;
 //	uint8_t papd = 0x1b;
 //	uint8_t sync = 0x06;
 	for (;;)
