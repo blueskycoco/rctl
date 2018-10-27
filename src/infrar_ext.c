@@ -108,7 +108,9 @@
 unsigned char g_state = STATE_ASK_CC1101_ADDR;
 #define MIN_BAT		640//486
 unsigned char b_protection_state = 1;	/*protection state*/
-unsigned char last_sub_cmd = 0x00; /*0x01 s1_alarm, 0x02 infrar_alarm, 0x04 low_power_alarm, 0x08 cur_status, 0x10 code*/
+unsigned char last_sub_cmd = 0x00; /*0x01 s1_alarm, 0x02 infrar_alarm, 
+									 0x04 low_power_alarm, 0x08 cur_status, 
+									 0x10 code*/
 volatile unsigned char key = 0x0;
 unsigned char stm32_id[STM32_CODE_LEN] = {0xff};
 unsigned char zero_id[STM32_CODE_LEN] = {0xff};
@@ -233,7 +235,8 @@ void open_ir_s1(void)
 }
 /*
    msp430 -> stm32 
-   0x01 cc1101_addr 0x6c 0xaa data_len stm32_id msp430_id cmd_type sub_cmd_type device_type battery crc
+   0x01 cc1101_addr 0x6c 0xaa data_len stm32_id msp430_id cmd_type 
+   		sub_cmd_type device_type battery crc
    0x01 0x00 MSG_HEAD0 MSG_HEAD1 LEN STM32_ID SUB_ID CMD TYPE MODEL TIME BAT CRC
    */
 void handle_cc1101_addr(uint8_t *id, uint8_t res) 
@@ -282,7 +285,8 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 }
 /*
    msp430 -> stm32 
-   0x01 cc1101_addr 0x6c 0xaa data_len stm32_id msp430_id cmd_type sub_cmd_type device_type battery crc
+   0x01 cc1101_addr 0x6c 0xaa data_len stm32_id msp430_id cmd_type 
+   	sub_cmd_type device_type battery crc
    */
 void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd) 
 {	
@@ -347,7 +351,8 @@ void switch_protect(int status)
 }
 /*	
 	stm32 -> msp430
-	cc1101_addr 0x01 0x6c 0xaa data_len stm32_id msp430_id cmd_type sub_cmd_type result/protect_status crc
+	cc1101_addr 0x01 0x6c 0xaa data_len stm32_id msp430_id cmd_type 
+			sub_cmd_type result/protect_status crc
 	*/
 void handle_cc1101_resp()
 {
@@ -380,7 +385,8 @@ void handle_cc1101_resp()
 		switch (cmd_type) {
 			case CMD_REG_CODE_ACK:
 				last_sub_cmd &= ~0x10;
-				if (resp[len+2] != 0x00 && cc1101_addr != resp[18]) {/*if get vaild addr && curr addr ==0*/
+				if (resp[len+2] != 0x00 && cc1101_addr != resp[18]) {
+					/*if get vaild addr && curr addr ==0*/
 					memcpy(stm32_id, resp+5, STM32_CODE_LEN);
 					cc1101_addr = resp[18];
 					unsigned char pkt = 0x05;
@@ -594,7 +600,8 @@ void task()
 	TACCR0 = 0x2fff;
 #endif
 	radio_init();
-	if (cc1101_addr != 0x00 && cc1101_addr != 0xff && memcmp(stm32_id, zero_id, STM32_CODE_LEN) != 0)
+	if (cc1101_addr != 0x00 && cc1101_addr != 0xff &&
+			memcmp(stm32_id, zero_id, STM32_CODE_LEN) != 0)
 	{
 		unsigned char pkt = 0x05;
 		trx8BitRegAccess(RADIO_WRITE_ACCESS, ADDR, &cc1101_addr, 1);
