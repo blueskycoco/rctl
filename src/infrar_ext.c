@@ -112,8 +112,8 @@ unsigned char last_sub_cmd = 0x00; /*0x01 s1_alarm, 0x02 infrar_alarm,
 									 0x04 low_power_alarm, 0x08 cur_status, 
 									 0x10 code*/
 volatile unsigned char key = 0x0;
-unsigned char stm32_id[STM32_CODE_LEN] = {0xff};
-unsigned char zero_id[STM32_CODE_LEN] = {0xff};
+unsigned char stm32_id[STM32_CODE_LEN] = {0x00};
+unsigned char zero_id[STM32_CODE_LEN] = {0x00};
 unsigned char cc1101_addr = 0x00;
 #define STM32_ADDR	0x01
 #define USE_SMCLK 0
@@ -625,7 +625,7 @@ void task()
 			key &= ~KEY_CODE;
 			LED_OUT |= LED_N_PIN;
 			/*send machine code to stm32*/
-			memset(stm32_id, 0xff, STM32_CODE_LEN);
+			memset(stm32_id, 0x0, STM32_CODE_LEN);
 			cc1101_addr = 0x00;			
 			unsigned char pkt = 0x06;
 			trx8BitRegAccess(RADIO_WRITE_ACCESS, PKTCTRL1, &pkt, 1);
@@ -633,6 +633,7 @@ void task()
 			handle_cc1101_addr(NULL,0);
 			CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
 			CODE_KEY_IE |= CODE_KEY_N_PIN;
+			LED_OUT &= ~LED_N_PIN;
 		}
 
 		if (key & KEY_S1) {
@@ -661,7 +662,6 @@ void task()
 
 		if (key & KEY_WIRELESS) {
 			key &= ~KEY_WIRELESS;
-			LED_OUT &= ~LED_N_PIN;
 			handle_cc1101_resp();
 		}
 		NOP();
