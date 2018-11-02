@@ -638,6 +638,7 @@ void task()
 			handle_cc1101_addr(NULL,0);
 			CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
 			CODE_KEY_IE |= CODE_KEY_N_PIN;
+			LED_OUT &= ~LED_N_PIN;
 		}
 
 		if (key & KEY_S1) {
