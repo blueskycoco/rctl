@@ -382,7 +382,7 @@ void handle_cc1101_resp()
 	switch (cmd_type) {
 		case CMD_REG_CODE_ACK:	
 			if (resp[len+2] != 0x00 && cc1101_addr == 0) {/*if get vaild addr && curr addr ==0*/
-				LED_OUT &= ~LED_N_PIN;
+				//LED_OUT &= ~LED_N_PIN;
 				memcpy(stm32_id, resp+5, STM32_CODE_LEN);
 				cc1101_addr = resp[18];
 				unsigned char pkt = 0x05;
@@ -397,6 +397,7 @@ void handle_cc1101_resp()
 		
 		case CMD_CONFIRM_CODE_ACK:
 				g_state = STATE_PROTECT_ON;
+				LED_OUT &= ~LED_N_PIN;
 			break;
 		case CMD_ALARM_ACK:
 			if (b_protection_state != resp[len+2]) {
@@ -461,8 +462,8 @@ void handle_timer()
 	if (resend_cnt < 10 || resend_cnt > 50) {
 	if (g_state == STATE_ASK_CC1101_ADDR)
 		handle_cc1101_addr(NULL, 0);
-	else if (g_state == STATE_CONFIRM_CC1101_ADDR)
-		handle_cc1101_addr(stm32_id, 1);
+	//else if (g_state == STATE_CONFIRM_CC1101_ADDR)
+	//	handle_cc1101_addr(stm32_id, 1);
 	else {
 		if (last_sub_cmd & 0x01)
 			handle_cc1101_cmd(CMD_ALARM,0x02);
