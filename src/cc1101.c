@@ -375,8 +375,6 @@ void write_info(char addr, unsigned char *buf, char len)
 	int i;
 	char ori_buf[64] = {0};
 	char *flash_ptr = (char *)(0x01000); 
-		_DINT();
-		NOP();
 	memcpy(ori_buf, (const void *)(0x01000), 64);
 	memcpy(ori_buf+addr, buf, len);
 
@@ -390,6 +388,4 @@ void write_info(char addr, unsigned char *buf, char len)
 
 	FCTL1 = FWKEY;
 	FCTL3 = FWKEY + LOCK;
-		NOP();
-		_EINT();
 }

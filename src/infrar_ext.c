@@ -282,7 +282,8 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 		P2IFG &= ~BIT0;
 		P2IE  |= BIT0;
 	}
-	TACTL = TASSEL_1 + MC_1 + TAIE + ID0;
+	TACTL = TASSEL_1 + MC_1 + TAIE;
+	TACCR0 = 0x1fff;
 }
 /*
    msp430 -> stm32 
@@ -338,6 +339,8 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	radio_send(cmd, ofs);
 	g_cnt = SECS_2;
 	P2IE  |= BIT0;
+	TACTL = TASSEL_1 + MC_1 + TAIE;
+	TACCR0 = 0x1fff;
 }
 void switch_protect(int status)
 {
@@ -364,25 +367,35 @@ void handle_cc1101_resp()
 	unsigned short cmd_type = 0;
 	int result = radio_read(resp, &len);
 	if (result !=0 && len > 0) {
-		if (resp[2] != MSG_HEAD0 || resp[3] != MSG_HEAD1)
+		if (resp[2] != MSG_HEAD0 || resp[3] != MSG_HEAD1) {
+			radio_sleep();
 			return ;		
-		if (resp[4] != len -5)
+		}
+		if (resp[4] != len -5) {
+			radio_sleep();
 			return ;
+		}
 		/*check subdevice id = local device id*/
 		uint8_t id[4];
 		read_info(ADDR_SN, id, 4);
-		if (memcmp(id , resp+11, 4)!=0)
+		if (memcmp(id , resp+11, 4)!=0) {
+			radio_sleep();
 			return ;
+		}
 		/*check stm32 id = saved stm32 id*/
 		if (memcmp(stm32_id , zero_id, STM32_CODE_LEN) !=0) {
-			if (memcmp(stm32_id, resp+5, STM32_CODE_LEN) !=0)
+			if (memcmp(stm32_id, resp+5, STM32_CODE_LEN) !=0) {
+			radio_sleep();
 				return ;
+			}
 		}
 		len = resp[4];
 		unsigned short crc = CRC(resp, len+3);
 		/*check crc*/
-		if (crc != (resp[len+3] << 8 | resp[len+4]))
+		if (crc != (resp[len+3] << 8 | resp[len+4])) {
+			radio_sleep();
 			return ;
+		}
 
 		cmd_type = resp[15]<<8 | resp[16];
 		switch (cmd_type) {
@@ -443,16 +456,16 @@ void handle_cc1101_resp()
 			default:
 				break;
 		}
-
+#if 0
 		if (last_sub_cmd == 0 && g_state == STATE_PROTECT_ON) {
 			resend_cnt = 0;
 			if (!b_protection_state)
 				g_cnt = MINS_5;
-			//radio_sleep();
+			radio_sleep();
 			//LED_OUT &= ~LED_N_PIN;
 		}
+#endif
 	}
-
 	//	if (last_sub_cmd == 0 && b_protection_state)
 	//	{
 	//		TACTL = MC_0;
@@ -513,6 +526,13 @@ void handle_timer()
 		}
 	}
 #else
+#if 1
+	if (last_sub_cmd) {/*code ack*/
+		last_sub_cmd = 0;
+		radio_sleep();
+		LED_OUT &= ~LED_N_PIN;
+	}
+#else
 	/*be called in 500ms once*/
 	if (last_sub_cmd & 0x10) {/*code ack*/
 		/*no response got in 500ms*/
@@ -553,6 +573,7 @@ void handle_timer()
 		handle_cc1101_cmd(CMD_CUR_STATUS,0x00);	
 		//radio_sleep();
 	}
+#endif
 #endif
 }
 void task()
@@ -613,6 +634,7 @@ void task()
 		trx8BitRegAccess(RADIO_WRITE_ACCESS, PKTCTRL1, &pkt, 1);
 		open_ir_s1();
 	}
+	radio_sleep();
 	while (1) {
 #if USE_SMCLK
 		__bis_SR_register(LPM0_bits + GIE);
@@ -629,12 +651,12 @@ void task()
 		if (key & KEY_CODE) {
 			key &= ~KEY_CODE;
 			LED_OUT |= LED_N_PIN;
-			/*send machine code to stm32*/
+			g_state = STATE_ASK_CC1101_ADDR;
+			/*send machine code to stm32*/		
 			memset(stm32_id, 0x00, STM32_CODE_LEN);
 			cc1101_addr = 0x00;			
 			unsigned char pkt = 0x06;
 			trx8BitRegAccess(RADIO_WRITE_ACCESS, PKTCTRL1, &pkt, 1);
-			g_state = STATE_ASK_CC1101_ADDR;
 			handle_cc1101_addr(NULL,0);
 			CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
 			CODE_KEY_IE |= CODE_KEY_N_PIN;
