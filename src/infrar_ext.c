@@ -529,7 +529,7 @@ void handle_timer()
 #if 1
 	if (last_sub_cmd) {/*code ack*/
 		last_sub_cmd = 0;
-		radio_sleep();
+	//	radio_sleep();
 		LED_OUT &= ~LED_N_PIN;
 	}
 #else
