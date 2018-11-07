@@ -115,8 +115,8 @@ void hw_init(void)
 	__delay_cycles(500000);
 	LED_OUT |= LED_N_PIN;
 	__delay_cycles(500000);
-	LED_OUT &= ~LED_N_PIN;
 	*/
+	LED_OUT &= ~LED_N_PIN;
 	LIGHT_SEL &= ~LIGHT_N_PIN;
 	LIGHT_DIR &= ~LIGHT_N_PIN;
 	LIGHT_REN &= ~LIGHT_N_PIN;
@@ -408,6 +408,7 @@ void handle_cc1101_resp()
 				last_sub_cmd &= ~0x10;
 				LED_OUT &= ~LED_N_PIN;
 				open_ir_s1();
+				radio_sleep();
 				//g_state = STATE_PROTECT_ON;
 				break;
 			case CMD_ALARM_ACK:
@@ -495,10 +496,10 @@ void task()
 			key &= ~KEY_WIRELESS;
 			handle_cc1101_resp();
 		}
+#if 0
 		if (key & KEY_INFRAR) {
 			key &= ~KEY_INFRAR;
 			handle_cc1101_cmd(CMD_ALARM, 0x01);
-#if 0
 			if (b_protection_state || !(LIGHT_IN & LIGHT_N_PIN)) {
 				//LED_OUT &= ~LED_N_PIN;
 				if (timer_5s >= 12)
@@ -509,8 +510,8 @@ void task()
 			} else if(!b_protection_state) {
 				g_trigger = 1;
 			}
-#endif
 		}
+#endif
 
 
 		NOP();

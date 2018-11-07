@@ -17,7 +17,7 @@ ifeq ($(APPNAME), infrar)
 SOURCES += main.c spi.c cc1101.c infrar_ext.c
 endif
 ifeq ($(APPNAME), infrar_old)
-SOURCES += main.c spi.c cc1101.c infrar_ext.c
+SOURCES += main.c spi.c cc1101.c infrar_ext2.c
 CFLAGS += -DSW_SPI
 endif
 VPATH = ./src
