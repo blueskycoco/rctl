@@ -149,7 +149,7 @@ void hw_init(void)
 	radio_init();
 	read_info(ADDR_STM32_ID, stm32_id, STM32_CODE_LEN);
 	read_info(ADDR_CC1101, &cc1101_addr, 1);
-#if 0
+#if 1
 	if (cc1101_addr != 0x00 &&
 			memcmp(stm32_id, zero_id, STM32_CODE_LEN) != 0)
 	{
@@ -230,6 +230,7 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 		key |= KEY_WIRELESS;
 		//P2IE  &= ~BIT0;
 		P2IFG &= ~BIT0;
+		LED_OUT &= ~LED_N_PIN;
 	}
 #ifndef SW_SPI
 	if ((key & KEY_WIRELESS) || (key & KEY_INFRAR))
@@ -250,6 +251,7 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 {
 	unsigned char cmd[32] = {0x00};
 	unsigned char ofs = 0;
+	LED_OUT |= LED_N_PIN;
 	cmd[0] = STM32_ADDR;cmd[1] = cc1101_addr;
 	cmd[2] = MSG_HEAD0;cmd[3] = MSG_HEAD1;
 	ofs = 5;
@@ -297,6 +299,7 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	unsigned char ofs = 0;
 	//if (g_state != STATE_PROTECT_ON)
 	//	return ;
+	LED_OUT |= LED_N_PIN;
 	P2IE  &= ~BIT0;
 	cmd[0] = STM32_ADDR;cmd[1] = cc1101_addr;
 	cmd[2] = MSG_HEAD0;cmd[3] = MSG_HEAD1;
@@ -330,11 +333,11 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	unsigned short crc = CRC(cmd, ofs);
 	cmd[ofs++] = (crc >> 8) & 0xff;
 	cmd[ofs++] = (crc) & 0xff;
-	LED_OUT |= LED_N_PIN;
+	/*LED_OUT |= LED_N_PIN;
 	__delay_cycles(200000);
 	LED_OUT &= ~LED_N_PIN;
 	__delay_cycles(100000);
-	//LED_OUT |= LED_N_PIN;
+	*///LED_OUT |= LED_N_PIN;
 	//__delay_cycles(100000);
 	//LED_OUT &= ~LED_N_PIN;
 	radio_send(cmd, ofs);
@@ -406,7 +409,6 @@ void handle_cc1101_resp()
 
 			case CMD_CONFIRM_CODE_ACK:
 				last_sub_cmd &= ~0x10;
-				LED_OUT &= ~LED_N_PIN;
 				open_ir_s1();
 				radio_sleep();
 				//g_state = STATE_PROTECT_ON;
@@ -478,7 +480,6 @@ void task()
 		NOP();
 		if (key & KEY_CODE) {
 			key &= ~KEY_CODE;
-			LED_OUT |= LED_N_PIN;
 			//g_state = STATE_ASK_CC1101_ADDR;
 			memset(stm32_id, 0x00, STM32_CODE_LEN);
 			cc1101_addr = 0x00;			
