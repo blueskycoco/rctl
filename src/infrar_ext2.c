@@ -92,20 +92,36 @@
 #define KEY_S1					0x04
 #define KEY_TIMER 				0x08
 #define KEY_WIRELESS			0x10
-unsigned char 			stm32_id[STM32_CODE_LEN] 	= {0x00};
-unsigned char 			zero_id[STM32_CODE_LEN] 	= {0x00};
-unsigned char 			cc1101_addr 				= 0x00;
-volatile unsigned char 	key 						= 0x0;
-volatile unsigned char 	door_lock 					= 0;
-uint32_t timer_cnt 									= 0;
-unsigned char last_sub_cmd = 0x00; /*0x01 s1_alarm, 0x02 infrar_alarm, 
-									 0x04 low_power_alarm, 0x08 cur_status, 
-									 0x10 code*/
-uint32_t cc1101_timeout = 0;
-unsigned char b_protection_state = 1;	/*protection state*/
-unsigned char g_state = STATE_ASK_CC1101_ADDR;
-unsigned int timer_5s = 0;
-uint8_t g_trigger = 0;
+
+#define TIMEOUT_1S				0x7fff
+#define TIMEOUT_500MS			0x3fff
+#define TIMEOUT_2S				0xffff
+
+#define SYS_PROTECT_ON			0x01
+#define SYS_PROTECT_OFF			0x00
+
+#define FLAG_ALARM_S1			0x01
+#define FLAG_ALARM_INFRAR		0x02
+#define FLAG_ALARM_LOW_P		0x04
+#define FLAG_CUR_STATUS			0x08
+#define FLAG_CODING				0x10
+uint8_t	 			stm32_id[STM32_CODE_LEN] 	= {0x00};
+uint8_t 			zero_id[STM32_CODE_LEN] 	= {0x00};
+uint8_t 			cc1101_addr 				= 0x00;
+volatile uint8_t 	key 						= 0x0;
+volatile uint8_t 	door_lock 					= 0;
+uint32_t 			timer_cnt 					= 0;
+/*
+  0x01 s1_alarm, 0x02 infrar_alarm, 
+  0x04 low_power_alarm, 0x08 cur_status, 
+  0x10 code
+*/
+uint8_t				last_sub_cmd 				= 0x00; 
+uint32_t 			cc1101_timeout 				= 0;
+uint8_t			 	b_protection_state 			= SYS_PROTECT_ON;
+uint8_t				g_state 					= STATE_ASK_CC1101_ADDR;
+uint32_t			timer_5s 					= 0;
+uint8_t 			g_trigger 					= 0;
 /*__delay_cycles(1000) means 1ms delay*/
 void open_ir_s1(void)
 {
@@ -231,7 +247,7 @@ void __attribute__ ((interrupt(PORT2_VECTOR))) Port_2 (void)
 	{
 		key |= KEY_WIRELESS;
 		P2IFG &= ~BIT0;
-		LED_OUT &= ~LED_N_PIN;
+		//LED_OUT &= ~LED_N_PIN;
 	}
 #ifndef SW_SPI
 	if ((key & KEY_WIRELESS) || (key & KEY_INFRAR))
@@ -252,7 +268,7 @@ void handle_cc1101_addr(uint8_t *id, uint8_t res)
 {
 	unsigned char cmd[32] = {0x00};
 	unsigned char ofs = 0;
-	LED_OUT |= LED_N_PIN;
+	//LED_OUT |= LED_N_PIN;
 	cmd[0] = STM32_ADDR;cmd[1] = cc1101_addr;
 	cmd[2] = MSG_HEAD0;cmd[3] = MSG_HEAD1;
 	ofs = 5;
@@ -300,7 +316,7 @@ void handle_cc1101_cmd(uint16_t main_cmd, uint8_t sub_cmd)
 	unsigned char ofs = 0;
 	if (g_state != STATE_PROTECT_ON)
 		return ;
-	LED_OUT |= LED_N_PIN;
+	//LED_OUT |= LED_N_PIN;
 	P2IE  &= ~BIT0;
 	cmd[0] = STM32_ADDR;cmd[1] = cc1101_addr;
 	cmd[2] = MSG_HEAD0;cmd[3] = MSG_HEAD1;
@@ -444,6 +460,10 @@ void handle_cc1101_resp()
 			default:
 				break;
 		}
+		if (b_protection_state)
+			LED_OUT |= LED_N_PIN;
+		else
+			LED_OUT &= ~LED_N_PIN;
 		radio_sleep();
 	}
 }
@@ -460,19 +480,27 @@ void handle_timer()
 	}
 #endif
 	if (last_sub_cmd) {
-		if (timer_cnt > (cc1101_timeout + 3)) {
+		if (timer_cnt > (cc1101_timeout + 2)) {
 			radio_sleep();
-			LED_OUT &= ~LED_N_PIN;
+			//LED_OUT &= ~LED_N_PIN;
 			last_sub_cmd = 0;
 		}
 	}
-	TACCR0 = 0x3fff;
+	if (g_trigger) {
+		if (timer_cnt >= timer_5s)
+		{
+			handle_cc1101_cmd(CMD_ALARM, 0x01);
+			g_trigger = 0;
+		}
+	}
+	TACCR0 = TIMEOUT_1S;
 }
 void task()
 {
 	hw_init();
 	TACTL = TASSEL_1 + MC_1 + TAIE;
-	TACCR0 = 0x3fff;
+	TACCR0 = TIMEOUT_1S;
+	
 	while (1) {
 		__bis_SR_register(LPM3_bits + GIE);
 		_DINT();
@@ -488,34 +516,27 @@ void task()
 			CODE_KEY_IFG &= ~CODE_KEY_N_PIN;
 			CODE_KEY_IE |= CODE_KEY_N_PIN;
 		}
+		
 		if (key & KEY_TIMER) {
 			key &= ~KEY_TIMER;
 			handle_timer();
 		}
+		
 		if (key & KEY_WIRELESS) {
 			key &= ~KEY_WIRELESS;
 			handle_cc1101_resp();
 		}
+		
 		if (key & KEY_INFRAR) {
 			key &= ~KEY_INFRAR;
-			handle_cc1101_cmd(CMD_ALARM, 0x01);
-#if 0
-			if (b_protection_state || !(LIGHT_IN & LIGHT_N_PIN)) {
-				if (timer_5s !=0) {
-					if (timer_cnt >= timer_5s + 10)
-					{						
-						timer_5s = 0;
-						handle_cc1101_cmd(CMD_ALARM, 0x01);
-					}
-				} else if (timer_5s == 0)
-					timer_5s = timer_cnt;
-			} else if(!b_protection_state) {
-				g_trigger = 1;
+				if (g_trigger == 0) {
+					if (b_protection_state || !(LIGHT_IN & LIGHT_N_PIN)) 
+						timer_5s = timer_cnt + 5;
+					else
+						timer_5s = timer_cnt + 60;
+					g_trigger = 1;
+				}
 			}
-#endif
-		}
-
-
 		NOP();
 		_EINT();
 	}
