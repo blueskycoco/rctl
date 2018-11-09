@@ -484,7 +484,7 @@ void handle_timer()
 			last_sub_cmd = 0;
 			g_ack_alarm_fail_cnt++;
 			if (g_ack_alarm_fail_cnt > 5)
-				b_protection_state = 0;
+				b_protection_state = 1;
 		}
 	}
 	if (g_trigger) {
