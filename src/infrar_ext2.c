@@ -122,6 +122,7 @@ uint8_t			 	b_protection_state 			= SYS_PROTECT_ON;
 uint8_t				g_state 					= STATE_ASK_CC1101_ADDR;
 uint32_t			timer_5s 					= 0;
 uint8_t 			g_trigger 					= 0;
+uint32_t			g_ack_alarm_fail_cnt		= 0;
 /*__delay_cycles(1000) means 1ms delay*/
 void open_ir_s1(void)
 {
@@ -201,6 +202,7 @@ void __attribute__ ((interrupt(PORT1_VECTOR))) Port_1 (void)
 			if (door_lock ==1)
 				door_lock = 0;
 		}
+		S1_KEY_IES ^= S1_KEY_N_PIN;
 		key |= KEY_S1;
 		S1_KEY_IE  &= ~S1_KEY_N_PIN;
 	}
@@ -460,11 +462,8 @@ void handle_cc1101_resp()
 			default:
 				break;
 		}
-		if (b_protection_state)
-			LED_OUT |= LED_N_PIN;
-		else
-			LED_OUT &= ~LED_N_PIN;
 		radio_sleep();
+		g_ack_alarm_fail_cnt = 0;
 	}
 }
 void handle_timer()
@@ -482,8 +481,10 @@ void handle_timer()
 	if (last_sub_cmd) {
 		if (timer_cnt > (cc1101_timeout + 2)) {
 			radio_sleep();
-			//LED_OUT &= ~LED_N_PIN;
 			last_sub_cmd = 0;
+			g_ack_alarm_fail_cnt++;
+			if (g_ack_alarm_fail_cnt > 5)
+				b_protection_state = 0;
 		}
 	}
 	if (g_trigger) {
@@ -494,6 +495,10 @@ void handle_timer()
 		}
 	}
 	TACCR0 = TIMEOUT_1S;
+	if (b_protection_state)
+		LED_OUT |= LED_N_PIN;
+	else
+		LED_OUT &= ~LED_N_PIN;
 }
 void task()
 {
@@ -537,6 +542,16 @@ void task()
 					g_trigger = 1;
 				}
 			}
+		
+		if (key & KEY_S1) {
+			key &= ~KEY_S1;
+			if (door_lock) 
+				handle_cc1101_cmd(CMD_ALARM, 0x02);
+			else
+				handle_cc1101_cmd(CMD_ALARM, 0x03);
+			S1_KEY_IFG &= ~S1_KEY_N_PIN;
+			S1_KEY_IE  |= S1_KEY_N_PIN;
+		}
 		NOP();
 		_EINT();
 	}
