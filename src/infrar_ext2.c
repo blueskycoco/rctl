@@ -105,12 +105,14 @@
 #define FLAG_ALARM_LOW_P		0x04
 #define FLAG_CUR_STATUS			0x08
 #define FLAG_CODING				0x10
+#define MIN_BAT					640//486
 uint8_t	 			stm32_id[STM32_CODE_LEN] 	= {0x00};
 uint8_t 			zero_id[STM32_CODE_LEN] 	= {0x00};
 uint8_t 			cc1101_addr 				= 0x00;
 volatile uint8_t 	key 						= 0x0;
 volatile uint8_t 	door_lock 					= 0;
 uint32_t 			timer_cnt 					= 0;
+uint32_t 			heart_cnt 					= 0;
 /*
   0x01 s1_alarm, 0x02 infrar_alarm, 
   0x04 low_power_alarm, 0x08 cur_status, 
@@ -493,6 +495,15 @@ void handle_timer()
 			handle_cc1101_cmd(CMD_ALARM, 0x01);
 			g_trigger = 0;
 		}
+	}
+	if (timer_cnt >= (heart_cnt + 120)) {/*heart*/
+		heart_cnt = timer_cnt;
+		unsigned short bat = read_adc();
+		if (bat <= MIN_BAT) {
+			handle_cc1101_cmd(CMD_LOW_POWER,0x00);
+		}
+		handle_cc1101_cmd(CMD_CUR_STATUS,0x00);	
+		radio_sleep();
 	}
 	TACCR0 = TIMEOUT_1S;
 	if (b_protection_state)
